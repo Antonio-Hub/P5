@@ -41,7 +41,7 @@ class DEMO_APP
 {	
 public:
 	struct SIMPLE_VERTEX { XMFLOAT4 xyzw;/* XMFLOAT4 color; */};
-	struct VRAM { XMFLOAT4X4 camView; XMFLOAT4X4 camProj; XMFLOAT4X4 camPos; XMFLOAT4X4 modelPos; };
+	struct VRAM { XMFLOAT4X4 camView; XMFLOAT4X4 camProj; XMFLOAT4X4 modelPos; };
 		XTime Time;
 
 	DEMO_APP(HINSTANCE hinst, WNDPROC proc);
@@ -57,7 +57,10 @@ private:
 	ID3D11DeviceContext * context = NULL;
 	ID3D11RenderTargetView * rtv = NULL;
 	D3D11_VIEWPORT viewport;
+	ID3D11Texture2D * depthStencil = nullptr;
+	ID3D11DepthStencilView * depthStencleView = nullptr;
 
+	int vertSize = 0;
 	ID3D11Buffer * vertbuffer = NULL;
 	ID3D11Buffer * indexbuffer = NULL;
 	unsigned int circlevertcount = 0;
@@ -107,15 +110,11 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	//********************* END WARNING ************************//
 
 	//camera data
-	static const XMVECTORF32 eye = { 0.0f, 0.0f, -15.5f, 0.0f };
-	static const XMVECTORF32 at = { 0.0f, 0.0f, 0.0f, 0.0f };
+	static const XMVECTORF32 eye = { 0.0f, 0.0f, -5.0f, 0.0f };
+	static const XMVECTORF32 at = { 1.0f, 0.0f, 0.0f, 0.0f };
 	static const XMVECTORF32 up = { 0.0f, 1.0f, 0.0f, 0.0f };
-	XMStoreFloat4x4(&send_to_ram.camPos, XMMatrixInverse(NULL, XMMatrixLookAtLH(eye, at, up)));
-
-	//model data
-	XMStoreFloat4x4(&send_to_ram.camView, XMMatrixTranspose(XMMatrixLookAtLH(eye, at, up)));
-	XMStoreFloat4x4(&send_to_ram.modelPos, XMMatrixTranspose(XMMatrixTranslation(1.0,0,0)/*XMMatrixIdentity()*/)); 
-	
+	XMStoreFloat4x4(&send_to_ram.camView,XMMatrixLookAtLH(eye, at, up));
+	//XMStoreFloat4x4(&send_to_ram.camView, XMMatrixInverse(NULL, XMMatrixLookAtLH(eye, at, up)));
 
 	float aspectRatio = BACKBUFFER_WIDTH / BACKBUFFER_HEIGHT;
 	float fovAngleY = 70.0f * XM_PI / 180.0f;
@@ -128,6 +127,11 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 		1000000.0f
 	);
 	XMStoreFloat4x4(&send_to_ram.camProj, perspectiveMatrix);
+
+	//model data
+	XMStoreFloat4x4(&send_to_ram.modelPos, XMMatrixIdentity()); 
+
+
 
 	DXGI_SWAP_CHAIN_DESC scd;
 	ZeroMemory(&scd, sizeof(DXGI_SWAP_CHAIN_DESC));
@@ -151,16 +155,37 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	viewport.TopLeftX = 0;
 	viewport.TopLeftY = 0;
 
+	//depth stencl
+	CD3D11_TEXTURE2D_DESC depthStencilDesc(
+		DXGI_FORMAT_D24_UNORM_S8_UINT,
+		lround(BACKBUFFER_WIDTH),
+		lround(BACKBUFFER_HEIGHT),
+		1,
+		1,
+		D3D11_BIND_DEPTH_STENCIL
+	);
+	device->CreateTexture2D(
+		&depthStencilDesc,
+		nullptr,
+		&depthStencil
+	);
+	CD3D11_DEPTH_STENCIL_VIEW_DESC depthStencilViewDesc(D3D11_DSV_DIMENSION_TEXTURE2D);
+	device->CreateDepthStencilView(
+		depthStencil,
+		&depthStencilViewDesc,
+		&depthStencleView
+	);
 	/*SIMPLE_VERTEX circle[366]{};
 	for (size_t i = 0; i < 366; i++)
 	{
 		XMFLOAT4 pos = XMFLOAT4((sin((i * (3.14f / 180)))), (cos((i * (3.14f / 180)))),0.0f,1.0f);
 		circle[i].xyzw = pos;
 	}*/
+
 	SIMPLE_VERTEX circle[3]{};
-	circle[0].xyzw = XMFLOAT4(0.1f, 0.1f, 0, 0);
-	circle[1].xyzw = XMFLOAT4(-0.1f, 0.1f, 0, 0);
-	circle[2].xyzw = XMFLOAT4(-0.1f, -0.1f, 0, 0);
+	circle[0].xyzw = XMFLOAT4(0.0f, 0.0f, 0, 0);
+	circle[1].xyzw = XMFLOAT4(0.0f, 0.2f, 0, 0);
+	circle[2].xyzw = XMFLOAT4(0.2f, 0.0f, 0, 0);
 
 
 
@@ -204,7 +229,7 @@ bool DEMO_APP::Run()
 	context->RSSetViewports(1, &viewport);
 	float color[4]{ 0.0f, 0.0f, 1.0f, 0.0f };
 	context->ClearRenderTargetView(rtv, color);
-
+	//context->ClearDepthStencilView(, )
 	context->UpdateSubresource(
 		constBuffer,
 		0,
@@ -221,7 +246,12 @@ bool DEMO_APP::Run()
 	context->PSSetShader(pixelshader, NULL, NULL);
 
 	context->IASetInputLayout(layout);
-	context->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_LINELIST);
+	context->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	context->VSSetConstantBuffers(
+		0,
+		1,
+		&constBuffer
+	);
 	context->Draw(3, 0);
 
 	
