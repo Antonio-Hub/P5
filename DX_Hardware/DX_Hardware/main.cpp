@@ -58,7 +58,7 @@ private:
 	ID3D11RenderTargetView * rtv = NULL;
 	D3D11_VIEWPORT viewport;
 	ID3D11Texture2D * depthStencil = nullptr;
-	ID3D11DepthStencilView * depthStencleView = nullptr;
+	ID3D11DepthStencilView * depthStencilView = nullptr;
 
 	int vertSize = 0;
 	ID3D11Buffer * vertbuffer = NULL;
@@ -75,6 +75,7 @@ private:
 	ID3D11Buffer * constBuffer = NULL;
 
 	VRAM send_to_ram;
+	XMFLOAT4X4 camera;
 };
 
 //************************************************************
@@ -110,26 +111,27 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	//********************* END WARNING ************************//
 
 	//camera data
-	static const XMVECTORF32 eye = { 0.0f, 0.0f, -5.0f, 0.0f };
-	static const XMVECTORF32 at = { 1.0f, 0.0f, 0.0f, 0.0f };
+	static const XMVECTORF32 eye = { 0.0f, 0.0f, -10.0f, 0.0f };
+	static const XMVECTORF32 at = { 0.0f, 0.0f, 1.0f, 0.0f };
 	static const XMVECTORF32 up = { 0.0f, 1.0f, 0.0f, 0.0f };
-	XMStoreFloat4x4(&send_to_ram.camView,XMMatrixLookAtLH(eye, at, up));
-	//XMStoreFloat4x4(&send_to_ram.camView, XMMatrixInverse(NULL, XMMatrixLookAtLH(eye, at, up)));
+	//XMStoreFloat4x4(&send_to_ram.camView,XMMatrixLookAtLH(eye, at, up));
+	XMStoreFloat4x4(&send_to_ram.camView, XMMatrixTranspose( XMMatrixLookAtLH(eye, at, up)));
+	XMStoreFloat4x4(&camera, XMMatrixTranspose(XMMatrixLookAtLH(eye, at, up)));
 
 	float aspectRatio = BACKBUFFER_WIDTH / BACKBUFFER_HEIGHT;
 	float fovAngleY = 70.0f * XM_PI / 180.0f;
 	if (aspectRatio < 1.0f)
 		fovAngleY *= 2.0f;
+	fovAngleY = XMConvertToDegrees(fovAngleY);
 	XMMATRIX perspectiveMatrix = XMMatrixPerspectiveFovLH(
 		fovAngleY,
 		aspectRatio,
 		0.01f,
-		1000000.0f
+		100.0f
 	);
-	XMStoreFloat4x4(&send_to_ram.camProj, perspectiveMatrix);
-
+	XMStoreFloat4x4(&send_to_ram.camProj, XMMatrixTranspose(perspectiveMatrix));
 	//model data
-	XMStoreFloat4x4(&send_to_ram.modelPos, XMMatrixIdentity()); 
+	XMStoreFloat4x4(&send_to_ram.modelPos, XMMatrixTranspose(XMMatrixIdentity()));
 
 
 
@@ -173,7 +175,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	device->CreateDepthStencilView(
 		depthStencil,
 		&depthStencilViewDesc,
-		&depthStencleView
+		&depthStencilView
 	);
 	/*SIMPLE_VERTEX circle[366]{};
 	for (size_t i = 0; i < 366; i++)
@@ -224,12 +226,46 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 
 bool DEMO_APP::Run()
 {
-	function();
-	context->OMSetRenderTargets(1, &rtv, NULL);
-	context->RSSetViewports(1, &viewport);
+	//if (GetAsyncKeyState(VK_LBUTTON))
+	//{
+	//	XMMATRIX newcamera = XMLoadFloat4x4(&camera);
+	//	POINT p;
+	//	GetCursorPos(&p);
+	//	ScreenToClient(window, &p);
+	//	float x = p.x;
+	//	float y = p.y;
+	//	static float prevX = x;
+	//	static float prevY = y;
+	//	float diffx = x - prevX;
+	//	float diffy = y - prevY;
+	//	XMVECTOR pos = newcamera.r[3];
+	//	newcamera.r[3] = XMLoadFloat4(&XMFLOAT4(0, 0, 0, 1));
+	//	newcamera = XMMatrixRotationX(diffy * 0.00001f) * newcamera * XMMatrixRotationY(diffx * 0.00001f);
+	//	newcamera.r[3] = pos;
+	//	XMStoreFloat4x4(&camera, newcamera);
+	//	XMStoreFloat4x4(&send_to_ram.camView, XMMatrixTranspose(XMMatrixInverse(0, newcamera)));
+	//}
+	if (GetAsyncKeyState('W'))
+	{
+		XMMATRIX newcamera = XMLoadFloat4x4(&camera);
+		newcamera.r[3] = newcamera.r[3] + newcamera.r[2] * 0.1f;
+		XMStoreFloat4x4(&camera, newcamera);
+		XMStoreFloat4x4(&send_to_ram.camView, XMMatrixTranspose(XMMatrixInverse(0, newcamera)));
+	}
+	if (GetAsyncKeyState('D'))
+	{
+		XMMATRIX newcamera = XMLoadFloat4x4(&camera);
+		newcamera.r[3] = newcamera.r[3] + newcamera.r[0] * 0.1f;
+		XMStoreFloat4x4(&camera, newcamera);
+		XMStoreFloat4x4(&send_to_ram.camView, XMMatrixTranspose(XMMatrixInverse(0,newcamera)));
+	}
+
 	float color[4]{ 0.0f, 0.0f, 1.0f, 0.0f };
+	function();
+	context->OMSetRenderTargets(1, &rtv, depthStencilView);
 	context->ClearRenderTargetView(rtv, color);
-	//context->ClearDepthStencilView(, )
+	context->ClearDepthStencilView(depthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0.0f);
+	context->RSSetViewports(1, &viewport);
 	context->UpdateSubresource(
 		constBuffer,
 		0,

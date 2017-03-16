@@ -25,6 +25,7 @@ OUTPUT_VERTEX main( INPUT_VERTEX fromVertexBuffer )
 	pos = mul(pos, camView);
 	pos = mul(pos, camProj);
 	sendToRasterizer.projectedCoordinate = pos;
+	sendToRasterizer.colorOut = float4(1.0f,0.0f,0.0f,0.0f);
 
 	//sendToRasterizer.projectedCoordinate.w = 1;
 	//sendToRasterizer.projectedCoordinate.xyz = fromVertexBuffer.coordinate.xyz;

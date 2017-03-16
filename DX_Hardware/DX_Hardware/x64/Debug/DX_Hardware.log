@@ -1,5 +1,4 @@
-﻿  compilation header save succeeded; see C:\Users\Antonio-ROG\Desktop\P5\DX_Hardware\DX_Hardware\Trivial_VS.csh
-  compilation object save succeeded; see C:\Users\Antonio-ROG\Desktop\P5\DX_Hardware\x64\Debug\Trivial_VS.cso
-  main.cpp
+﻿  main.cpp
+c:\users\antonio-rog\desktop\p5\dx_hardware\dx_hardware\main.cpp(267): warning C4244: 'argument': conversion from 'float' to 'UINT8', possible loss of data
   DX_Hardware.vcxproj -> C:\Users\Antonio-ROG\Desktop\P5\DX_Hardware\x64\Debug\DX_Hardware.exe
   DX_Hardware.vcxproj -> C:\Users\Antonio-ROG\Desktop\P5\DX_Hardware\x64\Debug\DX_Hardware.pdb (Full PDB)
