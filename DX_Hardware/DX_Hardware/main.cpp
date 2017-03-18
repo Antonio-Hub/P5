@@ -109,14 +109,16 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 
     ShowWindow( window, SW_SHOW );
 	//********************* END WARNING ************************//
+	
+	//XTime
+	Time.Restart();
 
 	//camera data
-	static const XMVECTORF32 eye = { 0.0f, 0.0f, -10.0f, 0.0f };
-	static const XMVECTORF32 at = { 0.0f, 0.0f, 1.0f, 0.0f };
+	static const XMVECTORF32 eye = { 0.0f, 0.0f, -50.0f, 0.0f };
+	static const XMVECTORF32 at = { 0.0f, 0.0f, 0.0f, 0.0f };
 	static const XMVECTORF32 up = { 0.0f, 1.0f, 0.0f, 0.0f };
-	//XMStoreFloat4x4(&send_to_ram.camView,XMMatrixLookAtLH(eye, at, up));
 	XMStoreFloat4x4(&send_to_ram.camView, XMMatrixTranspose( XMMatrixLookAtLH(eye, at, up)));
-	XMStoreFloat4x4(&camera, XMMatrixTranspose(XMMatrixLookAtLH(eye, at, up)));
+	XMStoreFloat4x4(&camera, XMMatrixLookAtLH(eye, at, up));
 
 	float aspectRatio = BACKBUFFER_WIDTH / BACKBUFFER_HEIGHT;
 	float fovAngleY = 70.0f * XM_PI / 180.0f;
@@ -127,7 +129,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 		fovAngleY,
 		aspectRatio,
 		0.01f,
-		100.0f
+		100000.0f
 	);
 	XMStoreFloat4x4(&send_to_ram.camProj, XMMatrixTranspose(perspectiveMatrix));
 	//model data
@@ -186,8 +188,8 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 
 	SIMPLE_VERTEX circle[3]{};
 	circle[0].xyzw = XMFLOAT4(0.0f, 0.0f, 0, 0);
-	circle[1].xyzw = XMFLOAT4(0.0f, 0.2f, 0, 0);
-	circle[2].xyzw = XMFLOAT4(0.2f, 0.0f, 0, 0);
+	circle[1].xyzw = XMFLOAT4(0.0f, 1.0f, 0, 0);
+	circle[2].xyzw = XMFLOAT4(1.0f, 0.0f, 0, 0);
 
 
 
@@ -226,40 +228,58 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 
 bool DEMO_APP::Run()
 {
-	//if (GetAsyncKeyState(VK_LBUTTON))
-	//{
-	//	XMMATRIX newcamera = XMLoadFloat4x4(&camera);
-	//	POINT p;
-	//	GetCursorPos(&p);
-	//	ScreenToClient(window, &p);
-	//	float x = p.x;
-	//	float y = p.y;
-	//	static float prevX = x;
-	//	static float prevY = y;
-	//	float diffx = x - prevX;
-	//	float diffy = y - prevY;
-	//	XMVECTOR pos = newcamera.r[3];
-	//	newcamera.r[3] = XMLoadFloat4(&XMFLOAT4(0, 0, 0, 1));
-	//	newcamera = XMMatrixRotationX(diffy * 0.00001f) * newcamera * XMMatrixRotationY(diffx * 0.00001f);
-	//	newcamera.r[3] = pos;
-	//	XMStoreFloat4x4(&camera, newcamera);
-	//	XMStoreFloat4x4(&send_to_ram.camView, XMMatrixTranspose(XMMatrixInverse(0, newcamera)));
-	//}
+	Time.Signal();
+	/*if (GetAsyncKeyState(VK_LBUTTON))
+	{
+		XMMATRIX newcamera = XMLoadFloat4x4(&camera);
+		POINT p;
+		GetCursorPos(&p);
+		ScreenToClient(window, &p);
+		float x = p.x;
+		float y = p.y;
+		static float prevX = x;
+		static float prevY = y;
+		float diffx = x - prevX;
+		float diffy = y - prevY;
+		XMVECTOR pos = newcamera.r[3];
+		newcamera.r[3] = XMLoadFloat4(&XMFLOAT4(0, 0, 0, 1));
+		newcamera = XMMatrixRotationX(diffy * 0.001f * Time.Delta()) * newcamera * XMMatrixRotationY(diffx * 0.001f * Time.Delta());
+		newcamera.r[3] = pos;
+		XMStoreFloat4x4(&camera, newcamera);
+		XMStoreFloat4x4(&send_to_ram.camView, XMMatrixTranspose(XMMatrixInverse(0, newcamera)));
+	}*/
 	if (GetAsyncKeyState('W'))
 	{
 		XMMATRIX newcamera = XMLoadFloat4x4(&camera);
-		newcamera.r[3] = newcamera.r[3] + newcamera.r[2] * 0.1f;
+		XMVECTOR forward{ 0.0f,0.0f,5.0f,0.0f };
+		newcamera.r[3] -= forward * Time.Delta();
 		XMStoreFloat4x4(&camera, newcamera);
-		XMStoreFloat4x4(&send_to_ram.camView, XMMatrixTranspose(XMMatrixInverse(0, newcamera)));
+		XMStoreFloat4x4(&send_to_ram.camView, XMMatrixTranspose(newcamera));
+	}
+	if (GetAsyncKeyState('S'))
+	{
+		XMMATRIX newcamera = XMLoadFloat4x4(&camera);
+		XMVECTOR forward{ 0.0f,0.0f,5.0f,0.0f };
+		newcamera.r[3] += forward * Time.Delta();
+		XMStoreFloat4x4(&camera, newcamera);
+		XMStoreFloat4x4(&send_to_ram.camView, XMMatrixTranspose(newcamera));
+	}
+	if (GetAsyncKeyState('A'))
+	{
+		XMMATRIX newcamera = XMLoadFloat4x4(&camera);
+		XMVECTOR Right{ 5.0f,0.0f,0.0f,0.0f };
+		newcamera.r[3] += Right * Time.Delta();
+		XMStoreFloat4x4(&camera, newcamera);
+		XMStoreFloat4x4(&send_to_ram.camView, XMMatrixTranspose(newcamera));
 	}
 	if (GetAsyncKeyState('D'))
 	{
 		XMMATRIX newcamera = XMLoadFloat4x4(&camera);
-		newcamera.r[3] = newcamera.r[3] + newcamera.r[0] * 0.1f;
+		XMVECTOR Right{ 5.0f,0.0f,0.0f,0.0f };
+		newcamera.r[3] -= Right * Time.Delta();
 		XMStoreFloat4x4(&camera, newcamera);
-		XMStoreFloat4x4(&send_to_ram.camView, XMMatrixTranspose(XMMatrixInverse(0,newcamera)));
+		XMStoreFloat4x4(&send_to_ram.camView, XMMatrixTranspose(newcamera));
 	}
-
 	float color[4]{ 0.0f, 0.0f, 1.0f, 0.0f };
 	function();
 	context->OMSetRenderTargets(1, &rtv, depthStencilView);
@@ -323,6 +343,7 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE, LPTSTR, int )
 	srand(unsigned int(time(0)));
 	DEMO_APP myApp(hInstance,(WNDPROC)WndProc);	
     MSG msg; ZeroMemory( &msg, sizeof( msg ) );
+
     while ( msg.message != WM_QUIT && myApp.Run() )
     {	
 	    if ( PeekMessage( &msg, NULL, 0, 0, PM_REMOVE ) )
