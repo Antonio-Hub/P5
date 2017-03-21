@@ -309,7 +309,10 @@ bool DEMO_APP::Run()
 		XMStoreFloat4x4(&send_to_ram.camView, XMMatrixTranspose(newcamera));
 	}
 	float color[4]{ 0.0f, 0.0f, 1.0f, 0.0f };
-	function();
+	int i = 0;
+	function(i);
+	int f = i;
+
 	context->OMSetRenderTargets(1, &rtv, depthStencilView);
 	context->ClearRenderTargetView(rtv, color);
 	context->ClearDepthStencilView(depthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0.0f);

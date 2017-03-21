@@ -1,11 +1,18 @@
-﻿  main.cpp
+﻿  compilation header save succeeded; see C:\Users\Antonio-ROG\Desktop\P5\DX_Hardware\DX_Hardware\Trivial_PS.csh
+  compilation object save succeeded; see C:\Users\Antonio-ROG\Desktop\P5\DX_Hardware\x64\Debug\Trivial_PS.cso
+  compilation header save succeeded; see C:\Users\Antonio-ROG\Desktop\P5\DX_Hardware\DX_Hardware\Trivial_VS.csh
+  compilation object save succeeded; see C:\Users\Antonio-ROG\Desktop\P5\DX_Hardware\x64\Debug\Trivial_VS.cso
+  XTime.cpp
+  main.cpp
 c:\users\antonio-rog\desktop\p5\dx_hardware\dx_hardware\main.cpp(271): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
 c:\users\antonio-rog\desktop\p5\dx_hardware\dx_hardware\main.cpp(283): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
 c:\users\antonio-rog\desktop\p5\dx_hardware\dx_hardware\main.cpp(291): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
 c:\users\antonio-rog\desktop\p5\dx_hardware\dx_hardware\main.cpp(299): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
 c:\users\antonio-rog\desktop\p5\dx_hardware\dx_hardware\main.cpp(307): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
-c:\users\antonio-rog\desktop\p5\dx_hardware\dx_hardware\main.cpp(315): warning C4244: 'argument': conversion from 'float' to 'UINT8', possible loss of data
-c:\users\antonio-rog\desktop\p5\dx_hardware\dx_hardware\main.cpp(435): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
-c:\users\antonio-rog\desktop\p5\dx_hardware\dx_hardware\main.cpp(436): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
+c:\users\antonio-rog\desktop\p5\dx_hardware\dx_hardware\main.cpp(318): warning C4244: 'argument': conversion from 'float' to 'UINT8', possible loss of data
+c:\users\antonio-rog\desktop\p5\dx_hardware\dx_hardware\main.cpp(438): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
+c:\users\antonio-rog\desktop\p5\dx_hardware\dx_hardware\main.cpp(439): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
+  Generating Code...
+cl : Command line warning D9028: minimal rebuild failure, reverting to normal build
   DX_Hardware.vcxproj -> C:\Users\Antonio-ROG\Desktop\P5\DX_Hardware\x64\Debug\DX_Hardware.exe
   DX_Hardware.vcxproj -> C:\Users\Antonio-ROG\Desktop\P5\DX_Hardware\x64\Debug\DX_Hardware.pdb (Full PDB)

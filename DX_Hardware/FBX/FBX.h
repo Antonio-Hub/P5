@@ -1,4 +1,3 @@
 #pragma once
-__declspec(dllexport) void function()
-{
-}
+__declspec(dllexport) void function(int &number);
+
