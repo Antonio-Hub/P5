@@ -16,7 +16,7 @@
 #include <iostream>
 #include <ctime>
 #include "XTime.h"
-
+#include <windowsx.h>
 using namespace std;
 
 #include <d3d11.h>
@@ -33,16 +33,43 @@ using namespace DirectX;
 
 #include "../FBX/FBX.h"
 
+class Imput
+{
+public:
+	Imput();
+	~Imput();
+	char buttons[256]{};
+	float x = 0.0f;
+	float y = 0.0f;
+	float prevX = 0.0f;
+	float prevY = 0.0f;
+	float diffx = 0.0f;
+	float diffy = 0.0f;
+	bool mouse_move = false;
+	bool left_click = false;
+	bool has_left_window = false;
+};
+
+Imput::Imput()
+{
+}
+
+Imput::~Imput()
+{
+}
+
+Imput imput;
+
 //************************************************************
 //************ SIMPLE WINDOWS APP CLASS **********************
 //************************************************************
 
 class DEMO_APP
-{	
+{
 public:
-	struct SIMPLE_VERTEX { XMFLOAT4 xyzw;/* XMFLOAT4 color; */};
+	struct SIMPLE_VERTEX { XMFLOAT4 xyzw;/* XMFLOAT4 color; */ };
 	struct VRAM { XMFLOAT4X4 camView; XMFLOAT4X4 camProj; XMFLOAT4X4 modelPos; };
-		XTime Time;
+	XTime Time;
 
 	DEMO_APP(HINSTANCE hinst, WNDPROC proc);
 	bool Run();
@@ -65,9 +92,9 @@ private:
 	ID3D11Buffer * indexbuffer = NULL;
 	unsigned int circlevertcount = 0;
 	ID3D11InputLayout * layout = NULL;
-		struct SEND_TO_VRAM { XMFLOAT4 color; XMFLOAT2 offset; XMFLOAT2 padding; };
+	struct SEND_TO_VRAM { XMFLOAT4 color; XMFLOAT2 offset; XMFLOAT2 padding; };
 
-	
+
 	ID3D11VertexShader*     vertexshader = NULL;
 	ID3D11PixelShader*      pixelshader = NULL;
 
@@ -76,6 +103,8 @@ private:
 
 	VRAM send_to_ram;
 	XMFLOAT4X4 camera;
+
+
 };
 
 //************************************************************
@@ -86,38 +115,38 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 {
 	// ****************** BEGIN WARNING ***********************// 
 	// WINDOWS CODE, I DON'T TEACH THIS YOU MUST KNOW IT ALREADY! 
-	application = hinst; 
-	appWndProc = proc; 
+	application = hinst;
+	appWndProc = proc;
 
 	WNDCLASSEX  wndClass;
-    ZeroMemory( &wndClass, sizeof( wndClass ) );
-    wndClass.cbSize         = sizeof( WNDCLASSEX );             
-    wndClass.lpfnWndProc    = appWndProc;						
-    wndClass.lpszClassName  = L"DirectXApplication";            
-	wndClass.hInstance      = application;		               
-    wndClass.hCursor        = LoadCursor( NULL, IDC_ARROW );    
-    wndClass.hbrBackground  = ( HBRUSH )( COLOR_WINDOWFRAME ); 
+	ZeroMemory(&wndClass, sizeof(wndClass));
+	wndClass.cbSize = sizeof(WNDCLASSEX);
+	wndClass.lpfnWndProc = appWndProc;
+	wndClass.lpszClassName = L"DirectXApplication";
+	wndClass.hInstance = application;
+	wndClass.hCursor = LoadCursor(NULL, IDC_ARROW);
+	wndClass.hbrBackground = (HBRUSH)(COLOR_WINDOWFRAME);
 	//wndClass.hIcon			= LoadIcon(GetModuleHandle(NULL), MAKEINTRESOURCE(IDI_FSICON));
-    RegisterClassEx( &wndClass );
+	RegisterClassEx(&wndClass);
 
 	RECT window_size = { 0, 0, BACKBUFFER_WIDTH, BACKBUFFER_HEIGHT };
 	AdjustWindowRect(&window_size, WS_OVERLAPPEDWINDOW, false);
 
-	window = CreateWindow(	L"DirectXApplication", L"CGS Hardware Project",	WS_OVERLAPPEDWINDOW & ~(WS_THICKFRAME|WS_MAXIMIZEBOX), 
-							CW_USEDEFAULT, CW_USEDEFAULT, window_size.right-window_size.left, window_size.bottom-window_size.top,					
-							NULL, NULL,	application, this );												
+	window = CreateWindow(L"DirectXApplication", L"CGS Hardware Project", WS_OVERLAPPEDWINDOW & ~(WS_THICKFRAME | WS_MAXIMIZEBOX),
+		CW_USEDEFAULT, CW_USEDEFAULT, window_size.right - window_size.left, window_size.bottom - window_size.top,
+		NULL, NULL, application, this);
 
-    ShowWindow( window, SW_SHOW );
+	ShowWindow(window, SW_SHOW);
 	//********************* END WARNING ************************//
-	
+
 	//XTime
 	Time.Restart();
 
 	//camera data
-	static const XMVECTORF32 eye = { 0.0f, 0.0f, -50.0f, 0.0f };
+	static const XMVECTORF32 eye = { 0.0f, 0.0f, -10.0f, 0.0f };
 	static const XMVECTORF32 at = { 0.0f, 0.0f, 0.0f, 0.0f };
 	static const XMVECTORF32 up = { 0.0f, 1.0f, 0.0f, 0.0f };
-	XMStoreFloat4x4(&send_to_ram.camView, XMMatrixTranspose( XMMatrixLookAtLH(eye, at, up)));
+	XMStoreFloat4x4(&send_to_ram.camView, XMMatrixTranspose(XMMatrixLookAtLH(eye, at, up)));
 	XMStoreFloat4x4(&camera, XMMatrixLookAtLH(eye, at, up));
 
 	float aspectRatio = BACKBUFFER_WIDTH / BACKBUFFER_HEIGHT;
@@ -229,26 +258,21 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 bool DEMO_APP::Run()
 {
 	Time.Signal();
-	/*if (GetAsyncKeyState(VK_LBUTTON))
-	{
-		XMMATRIX newcamera = XMLoadFloat4x4(&camera);
-		POINT p;
-		GetCursorPos(&p);
-		ScreenToClient(window, &p);
-		float x = p.x;
-		float y = p.y;
-		static float prevX = x;
-		static float prevY = y;
-		float diffx = x - prevX;
-		float diffy = y - prevY;
-		XMVECTOR pos = newcamera.r[3];
-		newcamera.r[3] = XMLoadFloat4(&XMFLOAT4(0, 0, 0, 1));
-		newcamera = XMMatrixRotationX(diffy * 0.001f * Time.Delta()) * newcamera * XMMatrixRotationY(diffx * 0.001f * Time.Delta());
-		newcamera.r[3] = pos;
-		XMStoreFloat4x4(&camera, newcamera);
-		XMStoreFloat4x4(&send_to_ram.camView, XMMatrixTranspose(XMMatrixInverse(0, newcamera)));
-	}*/
-	if (GetAsyncKeyState('W'))
+	if (imput.mouse_move)
+		if (imput.left_click)
+		{
+			XMMATRIX newcamera = XMLoadFloat4x4(&camera);
+			XMVECTOR pos = newcamera.r[3];
+			newcamera.r[3] = XMLoadFloat4(&XMFLOAT4(0, 0, 0, 1));
+			newcamera = XMMatrixRotationX(imput.diffy * Time.Delta()) * newcamera * XMMatrixRotationY(imput.diffx * Time.Delta());
+			newcamera.r[3] = pos;
+			XMStoreFloat4x4(&camera, newcamera);
+			XMStoreFloat4x4(&send_to_ram.camView, XMMatrixTranspose(newcamera));
+		}
+	imput.mouse_move = false;
+
+
+	if (imput.buttons['W'])
 	{
 		XMMATRIX newcamera = XMLoadFloat4x4(&camera);
 		XMVECTOR forward{ 0.0f,0.0f,5.0f,0.0f };
@@ -256,7 +280,7 @@ bool DEMO_APP::Run()
 		XMStoreFloat4x4(&camera, newcamera);
 		XMStoreFloat4x4(&send_to_ram.camView, XMMatrixTranspose(newcamera));
 	}
-	if (GetAsyncKeyState('S'))
+	if (imput.buttons['S'])
 	{
 		XMMATRIX newcamera = XMLoadFloat4x4(&camera);
 		XMVECTOR forward{ 0.0f,0.0f,5.0f,0.0f };
@@ -264,7 +288,7 @@ bool DEMO_APP::Run()
 		XMStoreFloat4x4(&camera, newcamera);
 		XMStoreFloat4x4(&send_to_ram.camView, XMMatrixTranspose(newcamera));
 	}
-	if (GetAsyncKeyState('A'))
+	if (imput.buttons['A'])
 	{
 		XMMATRIX newcamera = XMLoadFloat4x4(&camera);
 		XMVECTOR Right{ 5.0f,0.0f,0.0f,0.0f };
@@ -272,7 +296,7 @@ bool DEMO_APP::Run()
 		XMStoreFloat4x4(&camera, newcamera);
 		XMStoreFloat4x4(&send_to_ram.camView, XMMatrixTranspose(newcamera));
 	}
-	if (GetAsyncKeyState('D'))
+	if (imput.buttons['D'])
 	{
 		XMMATRIX newcamera = XMLoadFloat4x4(&camera);
 		XMVECTOR Right{ 5.0f,0.0f,0.0f,0.0f };
@@ -310,9 +334,9 @@ bool DEMO_APP::Run()
 	);
 	context->Draw(3, 0);
 
-	
+
 	swapchain->Present(0, 0);
-	return true; 
+	return true;
 }
 
 //************************************************************
@@ -325,7 +349,7 @@ bool DEMO_APP::ShutDown()
 	context->Release();
 	rtv->Release();
 	swapchain->Release();
-	UnregisterClass( L"DirectXApplication", application ); 
+	UnregisterClass(L"DirectXApplication", application);
 	return true;
 }
 
@@ -335,35 +359,93 @@ bool DEMO_APP::ShutDown()
 
 // ****************** BEGIN WARNING ***********************// 
 // WINDOWS CODE, I DON'T TEACH THIS YOU MUST KNOW IT ALREADY!
-	
-int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdLine,	int nCmdShow );						   
-LRESULT CALLBACK WndProc(HWND hWnd,	UINT message, WPARAM wparam, LPARAM lparam );		
-int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE, LPTSTR, int )
+
+int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdLine, int nCmdShow);
+LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wparam, LPARAM lparam);
+int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, LPTSTR, int)
 {
 	srand(unsigned int(time(0)));
-	DEMO_APP myApp(hInstance,(WNDPROC)WndProc);	
-    MSG msg; ZeroMemory( &msg, sizeof( msg ) );
+	DEMO_APP myApp(hInstance, (WNDPROC)WndProc);
+	MSG msg; ZeroMemory(&msg, sizeof(msg));
 
-    while ( msg.message != WM_QUIT && myApp.Run() )
-    {	
-	    if ( PeekMessage( &msg, NULL, 0, 0, PM_REMOVE ) )
-        { 
-            TranslateMessage( &msg );
-            DispatchMessage( &msg ); 
-        }
-    }
-	myApp.ShutDown(); 
-	return 0; 
+	tagTRACKMOUSEEVENT mouse_tracker;
+	TrackMouseEvent(&mouse_tracker);
+
+	while (msg.message != WM_QUIT && myApp.Run())
+	{
+		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+		{
+			TranslateMessage(&msg);
+			DispatchMessage(&msg); //this calls the WndProc function
+		}
+	}
+	myApp.ShutDown();
+	return 0;
 }
-LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam )
+LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    if(GetAsyncKeyState(VK_ESCAPE))
+	if (GetAsyncKeyState(VK_ESCAPE))
 		message = WM_DESTROY;
-    switch ( message )
-    {
-        case ( WM_DESTROY ): { PostQuitMessage( 0 ); }
-        break;
-    }
-    return DefWindowProc( hWnd, message, wParam, lParam );
+	switch (message)
+	{
+	case (WM_DESTROY):
+	{
+		PostQuitMessage(0);
+		break;
+	}
+	case (WM_KEYDOWN):
+	{
+		if (wParam)
+		{
+			imput.buttons[wParam] = true;
+		}
+		break;
+	};
+	case (WM_KEYUP):
+	{
+		if (wParam)
+		{
+			imput.buttons[wParam] = false;
+		}
+		break;
+	};
+	case (WM_LBUTTONDOWN):
+	{
+		imput.diffx = 0.0f;
+		imput.diffy = 0.0f;
+		imput.left_click = true;
+		imput.mouse_move = true;
+		break;
+	};
+	case (WM_LBUTTONUP):
+	{
+		imput.diffx = 0.0f;
+		imput.diffy = 0.0f;
+		imput.left_click = false;
+		imput.mouse_move = false;
+		break;
+	};
+	case (WM_MOUSEMOVE):
+	{
+		imput.mouse_move = true;
+		imput.x = GET_X_LPARAM(lParam);
+		imput.y = GET_Y_LPARAM(lParam);
+		imput.diffx = imput.x - imput.prevX;
+		imput.diffy = imput.y - imput.prevY;
+		imput.prevX = imput.x;
+		imput.prevY = imput.y;
+		break;
+	};
+	case (WM_MOUSELEAVE) :
+	{
+		imput.diffx = 0.0f;
+		imput.diffy = 0.0f;
+		imput.left_click = false;
+		imput.mouse_move = false;
+		imput.has_left_window = true;
+		break;
+	};
+	}
+	return DefWindowProc(hWnd, message, wParam, lParam);
 }
 //********************* END WARNING ************************//
