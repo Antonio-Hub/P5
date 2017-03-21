@@ -143,8 +143,8 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	Time.Restart();
 
 	//camera data
-	static const XMVECTORF32 eye = { 0.0f, 0.0f, -10.0f, 0.0f };
-	static const XMVECTORF32 at = { 0.0f, 0.0f, 0.0f, 0.0f };
+	static const XMVECTORF32 eye = { 0.0f, 5.0f, -10.0f, 0.0f };
+	static const XMVECTORF32 at = { 0.0f, -1.0f, 1.0f, 0.0f };
 	static const XMVECTORF32 up = { 0.0f, 1.0f, 0.0f, 0.0f };
 	XMStoreFloat4x4(&send_to_ram.camView, XMMatrixTranspose(XMMatrixLookAtLH(eye, at, up)));
 	XMStoreFloat4x4(&camera, XMMatrixLookAtLH(eye, at, up));
@@ -215,17 +215,21 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 		circle[i].xyzw = pos;
 	}*/
 
-	SIMPLE_VERTEX circle[3]{};
-	circle[0].xyzw = XMFLOAT4(0.0f, 0.0f, 0, 0);
-	circle[1].xyzw = XMFLOAT4(0.0f, 1.0f, 0, 0);
-	circle[2].xyzw = XMFLOAT4(1.0f, 0.0f, 0, 0);
+	SIMPLE_VERTEX circle[6]{};
 
+	circle[0].xyzw = XMFLOAT4(-1.0f, 0.0f, 1.0f, 0);
+	circle[1].xyzw = XMFLOAT4(1.0f, 0.0f, 1.0f, 0);
+	circle[2].xyzw = XMFLOAT4(1.0f, 0.0f, -1.0f, 0);
+
+	circle[3].xyzw = XMFLOAT4(-1.0f, 0.0f, 1.0f, 0);
+	circle[4].xyzw = XMFLOAT4(1.0f, 0.0f, -1.0f, 0);
+	circle[5].xyzw = XMFLOAT4(-1.0f, 0.0f, -1.0f, 0);
 
 
 	D3D11_BUFFER_DESC bufferdescription;
 	ZeroMemory(&bufferdescription, sizeof(bufferdescription));
 	bufferdescription.Usage = D3D11_USAGE_IMMUTABLE;
-	bufferdescription.ByteWidth = sizeof(SIMPLE_VERTEX) * 3;
+	bufferdescription.ByteWidth = sizeof(SIMPLE_VERTEX) * 6;
 	bufferdescription.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	bufferdescription.CPUAccessFlags = NULL;
 	bufferdescription.MiscFlags = NULL;
@@ -332,7 +336,7 @@ bool DEMO_APP::Run()
 		1,
 		&constBuffer
 	);
-	context->Draw(3, 0);
+	context->Draw(6, 0);
 
 
 	swapchain->Present(0, 0);
@@ -436,7 +440,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		imput.prevY = imput.y;
 		break;
 	};
-	case (WM_MOUSELEAVE) :
+	case (WM_MOUSELEAVE):
 	{
 		imput.diffx = 0.0f;
 		imput.diffy = 0.0f;

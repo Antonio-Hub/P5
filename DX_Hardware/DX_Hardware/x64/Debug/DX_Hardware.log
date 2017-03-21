@@ -1,11 +1,11 @@
 ﻿  main.cpp
-c:\users\antonio-rog\desktop\p5\dx_hardware\dx_hardware\main.cpp(267): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
-c:\users\antonio-rog\desktop\p5\dx_hardware\dx_hardware\main.cpp(279): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
-c:\users\antonio-rog\desktop\p5\dx_hardware\dx_hardware\main.cpp(287): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
-c:\users\antonio-rog\desktop\p5\dx_hardware\dx_hardware\main.cpp(295): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
-c:\users\antonio-rog\desktop\p5\dx_hardware\dx_hardware\main.cpp(303): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
-c:\users\antonio-rog\desktop\p5\dx_hardware\dx_hardware\main.cpp(311): warning C4244: 'argument': conversion from 'float' to 'UINT8', possible loss of data
-c:\users\antonio-rog\desktop\p5\dx_hardware\dx_hardware\main.cpp(431): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
-c:\users\antonio-rog\desktop\p5\dx_hardware\dx_hardware\main.cpp(432): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
+c:\users\antonio-rog\desktop\p5\dx_hardware\dx_hardware\main.cpp(271): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+c:\users\antonio-rog\desktop\p5\dx_hardware\dx_hardware\main.cpp(283): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+c:\users\antonio-rog\desktop\p5\dx_hardware\dx_hardware\main.cpp(291): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+c:\users\antonio-rog\desktop\p5\dx_hardware\dx_hardware\main.cpp(299): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+c:\users\antonio-rog\desktop\p5\dx_hardware\dx_hardware\main.cpp(307): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+c:\users\antonio-rog\desktop\p5\dx_hardware\dx_hardware\main.cpp(315): warning C4244: 'argument': conversion from 'float' to 'UINT8', possible loss of data
+c:\users\antonio-rog\desktop\p5\dx_hardware\dx_hardware\main.cpp(435): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
+c:\users\antonio-rog\desktop\p5\dx_hardware\dx_hardware\main.cpp(436): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
   DX_Hardware.vcxproj -> C:\Users\Antonio-ROG\Desktop\P5\DX_Hardware\x64\Debug\DX_Hardware.exe
   DX_Hardware.vcxproj -> C:\Users\Antonio-ROG\Desktop\P5\DX_Hardware\x64\Debug\DX_Hardware.pdb (Full PDB)
