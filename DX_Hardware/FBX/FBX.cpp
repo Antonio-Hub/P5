@@ -455,7 +455,70 @@ __declspec(dllexport) void function(char * fileName, char * outFileNameMesh, cha
 	}
 }
 
-__declspec(dllexport) void functionality(char * fileName, char * filenameBone, char * outFileNameAnimation, unsigned int & triCount, vector<unsigned int>& triIndices, vector<BlendingVertex>& verts, Skeleton *& mSkeleton, vector<Bone>& bind_pose)
+__declspec(dllexport) bool functionality(char * fileName, char * filenameBone, char * fileNameAnimation, unsigned int & triCount, vector<unsigned int>& triIndices, vector<BlendingVertex>& verts, Skeleton *& mSkeleton, vector<Bone>& bind_pose)
 {
+	FILE * f;
+	bool bReturn = false;
+	fopen_s(&f, fileName, "rb");
+	if (f)
+	{
+		bReturn = true;
+		triCount = 0;
+		int vertCount = 0;
+		fread(&triCount, sizeof(unsigned int), 1, f);
+		fread(&vertCount, sizeof(unsigned int), 1, f);
+		triIndices.resize(triCount * 3);
+		fread(&triIndices[0], sizeof(unsigned int), triCount * 3, f);
+		verts.resize(vertCount);
+		for (unsigned int i = 0; i < (unsigned)vertCount; i++)
+		{
+			unsigned int blendInfoSize = 0;
+			BlendingVertex t;
+			fread(&t.mPosition, sizeof(float), 3, f);
+			fread(&t.mNormal, sizeof(float), 3, f);
+			fread(&t.mUV, sizeof(float), 2, f);
+			fread(&t.mTangent, sizeof(float), 3, f);
+			fread(&blendInfoSize, sizeof(unsigned int), 1, f);
+			for (unsigned int j = 0; j < blendInfoSize; j++)
+			{
+				VertexBlending tb;
+				fread(&tb.mBlendingIndex, sizeof(unsigned int), 1, f);
+				fread(&tb.mBlendWeight, sizeof(unsigned int), 1, f);
+				t.mVertexBlendingInfos.push_back(tb);
+			}
+			verts.push_back(t);
+		}
+		fclose(f);
+	}
+	f = nullptr;
+	fopen_s(&f, filenameBone, "rb");
+	if (f)
+	{
+		unsigned int bindCount = 0;
+		fread(&bindCount, sizeof(unsigned int), 1, f);
+		bind_pose.resize(bindCount);
+		fread(&bind_pose[0], sizeof(Bone), bindCount, f);
+		fclose(f);
+	}
+	f = nullptr;
+	fopen_s(&f, fileNameAnimation, "rb");
+	if (f)
+	{
+		unsigned int frameCount = 0;
+		fread(&frameCount, sizeof(unsigned int), 1, f);
+		mSkeleton->joints.resize(frameCount);
+		for (unsigned int i = 0; i < frameCount; i++)
+		{
+			KeyFrame * t = new KeyFrame();
+			unsigned int bone_size = 0;
+			fread(&bone_size, sizeof(unsigned int), 1, f);
+			t->bones.resize(bone_size);
+			fread(&t->bones[0], sizeof(Bone), bone_size, f);
+			fread(&t->Time, sizeof(float), 1, f);
+			mSkeleton->joints[i] = t;
+		}
+		fclose(f);
+	}
+	return bReturn;
 }
 
