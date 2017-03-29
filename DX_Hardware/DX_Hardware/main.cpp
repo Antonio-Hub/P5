@@ -268,7 +268,7 @@ bool DEMO_APP::Run()
 			XMMATRIX newcamera = XMLoadFloat4x4(&camera);
 			XMVECTOR pos = newcamera.r[3];
 			newcamera.r[3] = XMLoadFloat4(&XMFLOAT4(0, 0, 0, 1));
-			newcamera = XMMatrixRotationX(imput.diffy * Time.Delta()) * newcamera * XMMatrixRotationY(imput.diffx * Time.Delta());
+			newcamera = XMMatrixRotationX(imput.diffy * (float)Time.Delta()) * newcamera * XMMatrixRotationY(imput.diffx * (float)Time.Delta());
 			newcamera.r[3] = pos;
 			XMStoreFloat4x4(&camera, newcamera);
 			XMStoreFloat4x4(&send_to_ram.camView, XMMatrixTranspose(newcamera));
@@ -280,7 +280,7 @@ bool DEMO_APP::Run()
 	{
 		XMMATRIX newcamera = XMLoadFloat4x4(&camera);
 		XMVECTOR forward{ 0.0f,0.0f,5.0f,0.0f };
-		newcamera.r[3] -= forward * Time.Delta();
+		newcamera.r[3] -= forward * (float)Time.Delta();
 		XMStoreFloat4x4(&camera, newcamera);
 		XMStoreFloat4x4(&send_to_ram.camView, XMMatrixTranspose(newcamera));
 	}
@@ -288,7 +288,7 @@ bool DEMO_APP::Run()
 	{
 		XMMATRIX newcamera = XMLoadFloat4x4(&camera);
 		XMVECTOR forward{ 0.0f,0.0f,5.0f,0.0f };
-		newcamera.r[3] += forward * Time.Delta();
+		newcamera.r[3] += forward * (float)Time.Delta();
 		XMStoreFloat4x4(&camera, newcamera);
 		XMStoreFloat4x4(&send_to_ram.camView, XMMatrixTranspose(newcamera));
 	}
@@ -296,7 +296,7 @@ bool DEMO_APP::Run()
 	{
 		XMMATRIX newcamera = XMLoadFloat4x4(&camera);
 		XMVECTOR Right{ 5.0f,0.0f,0.0f,0.0f };
-		newcamera.r[3] += Right * Time.Delta();
+		newcamera.r[3] += Right * (float)Time.Delta();
 		XMStoreFloat4x4(&camera, newcamera);
 		XMStoreFloat4x4(&send_to_ram.camView, XMMatrixTranspose(newcamera));
 	}
@@ -304,18 +304,22 @@ bool DEMO_APP::Run()
 	{
 		XMMATRIX newcamera = XMLoadFloat4x4(&camera);
 		XMVECTOR Right{ 5.0f,0.0f,0.0f,0.0f };
-		newcamera.r[3] -= Right * Time.Delta();
+		newcamera.r[3] -= Right *(float) Time.Delta();
 		XMStoreFloat4x4(&camera, newcamera);
 		XMStoreFloat4x4(&send_to_ram.camView, XMMatrixTranspose(newcamera));
 	}
 	float color[4]{ 0.0f, 0.0f, 1.0f, 0.0f };
-	int i = 0;
-	function(i);
-	int f = i;
+	char * one = nullptr;
+	char * two = nullptr;
+	char * three = nullptr;
+	char * four = nullptr;
+	//int i = 0;
+	//function(i);
+	//int f = i;
 
 	context->OMSetRenderTargets(1, &rtv, depthStencilView);
 	context->ClearRenderTargetView(rtv, color);
-	context->ClearDepthStencilView(depthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0.0f);
+	context->ClearDepthStencilView(depthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 	context->RSSetViewports(1, &viewport);
 	context->UpdateSubresource(
 		constBuffer,
@@ -435,8 +439,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case (WM_MOUSEMOVE):
 	{
 		imput.mouse_move = true;
-		imput.x = GET_X_LPARAM(lParam);
-		imput.y = GET_Y_LPARAM(lParam);
+		imput.x = (float)GET_X_LPARAM(lParam);
+		imput.y = (float)GET_Y_LPARAM(lParam);
 		imput.diffx = imput.x - imput.prevX;
 		imput.diffy = imput.y - imput.prevY;
 		imput.prevX = imput.x;
