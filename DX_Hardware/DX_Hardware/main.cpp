@@ -208,24 +208,24 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 		&depthStencilViewDesc,
 		&depthStencilView
 	);
+
 	/*SIMPLE_VERTEX circle[366]{};
 	for (size_t i = 0; i < 366; i++)
 	{
 		XMFLOAT4 pos = XMFLOAT4((sin((i * (3.14f / 180)))), (cos((i * (3.14f / 180)))),0.0f,1.0f);
 		circle[i].xyzw = pos;
-	}*/
+	}
 
-	SIMPLE_VERTEX circle[6]{};
 
-	circle[0].xyzw = XMFLOAT4(-1.0f, 0.0f, 1.0f, 0);
+
+	/*circle[0].xyzw = XMFLOAT4(-1.0f, 0.0f, 1.0f, 0);
 	circle[1].xyzw = XMFLOAT4(1.0f, 0.0f, 1.0f, 0);
 	circle[2].xyzw = XMFLOAT4(1.0f, 0.0f, -1.0f, 0);
 
 	circle[3].xyzw = XMFLOAT4(-1.0f, 0.0f, 1.0f, 0);
 	circle[4].xyzw = XMFLOAT4(1.0f, 0.0f, -1.0f, 0);
 	circle[5].xyzw = XMFLOAT4(-1.0f, 0.0f, -1.0f, 0);
-
-
+	
 	D3D11_BUFFER_DESC bufferdescription;
 	ZeroMemory(&bufferdescription, sizeof(bufferdescription));
 	bufferdescription.Usage = D3D11_USAGE_IMMUTABLE;
@@ -237,7 +237,41 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	D3D11_SUBRESOURCE_DATA InitData;
 	ZeroMemory(&InitData, sizeof(InitData));
 	InitData.pSysMem = circle;
-	device->CreateBuffer(&bufferdescription, &InitData, &vertbuffer);
+	device->CreateBuffer(&bufferdescription, &InitData, &vertbuffer);*/
+	
+	SIMPLE_VERTEX circle[4]{};
+	circle[0].xyzw = XMFLOAT4(1.0f, 0.0f, 1.0f, 0);
+	circle[1].xyzw = XMFLOAT4(1.0f, 0.0f, -1.0f, 0);
+	circle[2].xyzw = XMFLOAT4(-1.0f, 0.0f, -1.0f, 0);
+	circle[3].xyzw = XMFLOAT4(-1.0f, 0.0f, 1.0f, 0);
+
+	D3D11_BUFFER_DESC vertbufferdescription;
+	ZeroMemory(&vertbufferdescription, sizeof(vertbufferdescription));
+	vertbufferdescription.Usage = D3D11_USAGE_IMMUTABLE;
+	vertbufferdescription.ByteWidth = sizeof(SIMPLE_VERTEX) * 4;
+	vertbufferdescription.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	vertbufferdescription.CPUAccessFlags = NULL;
+	vertbufferdescription.MiscFlags = NULL;
+	vertbufferdescription.StructureByteStride = sizeof(SIMPLE_VERTEX);
+	D3D11_SUBRESOURCE_DATA vertInitData;
+	ZeroMemory(&vertInitData, sizeof(vertInitData));
+	vertInitData.pSysMem = circle;
+	device->CreateBuffer(&vertbufferdescription, &vertInitData, &vertbuffer);
+
+	unsigned int index[6]{ 0,1,3,1,2,3 };
+
+	D3D11_BUFFER_DESC indexbufferdescription;
+	ZeroMemory(&indexbufferdescription, sizeof(indexbufferdescription));
+	indexbufferdescription.Usage = D3D11_USAGE_IMMUTABLE;
+	indexbufferdescription.ByteWidth = sizeof(unsigned int) * 6;
+	indexbufferdescription.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	indexbufferdescription.CPUAccessFlags = NULL;
+	indexbufferdescription.MiscFlags = NULL;
+	indexbufferdescription.StructureByteStride = sizeof(unsigned int);
+	D3D11_SUBRESOURCE_DATA indexInitData;
+	ZeroMemory(&indexInitData, sizeof(indexInitData));
+	indexInitData.pSysMem = index;
+	device->CreateBuffer(&indexbufferdescription, &indexInitData, &indexbuffer);
 
 
 
@@ -313,9 +347,7 @@ bool DEMO_APP::Run()
 	char * two = nullptr;
 	char * three = nullptr;
 	char * four = nullptr;
-	//int i = 0;
-	//function(i);
-	//int f = i;
+	//function();
 
 	context->OMSetRenderTargets(1, &rtv, depthStencilView);
 	context->ClearRenderTargetView(rtv, color);
@@ -332,7 +364,7 @@ bool DEMO_APP::Run()
 	UINT stride = sizeof(SIMPLE_VERTEX);
 	UINT offset = 0;
 	context->IASetVertexBuffers(0, 1, &vertbuffer, &stride, &offset);
-
+	context->IASetIndexBuffer(indexbuffer, DXGI_FORMAT_R32_UINT, offset);
 	context->VSSetShader(vertexshader, NULL, NULL);
 	context->PSSetShader(pixelshader, NULL, NULL);
 
@@ -343,9 +375,7 @@ bool DEMO_APP::Run()
 		1,
 		&constBuffer
 	);
-	context->Draw(6, 0);
-
-
+	context->DrawIndexed(6, 0, 0);
 	swapchain->Present(0, 0);
 	return true;
 }
