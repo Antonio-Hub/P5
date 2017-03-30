@@ -136,6 +136,8 @@ void GetNormals(FbxMesh* inMesh, int inCtrlPointIndex, int inVertexCounter, XMFL
 	switch (vertexNormal->GetMappingMode())
 	{
 	case FbxGeometryElement::eByControlPoint:
+	{
+
 		switch (vertexNormal->GetReferenceMode())
 		{
 		case FbxGeometryElement::eDirect:
@@ -154,10 +156,15 @@ void GetNormals(FbxMesh* inMesh, int inCtrlPointIndex, int inVertexCounter, XMFL
 			break;
 		}
 		default:
+		{
 			throw exception("Invalid Reference");
 			break;
 		}
+		}
+		break;
+	}
 	case FbxGeometryElement::eByPolygonVertex:
+	{
 		switch (vertexNormal->GetReferenceMode())
 		{
 		case FbxGeometryElement::eDirect:
@@ -176,12 +183,19 @@ void GetNormals(FbxMesh* inMesh, int inCtrlPointIndex, int inVertexCounter, XMFL
 			break;
 		}
 		default:
+		{
 			throw exception("Invalid Reference");
 			break;
 		}
+		}
+		break;
+	}
+
 	default:
+	{
 		throw exception("Invalid Reference");
 		break;
+	}
 	}
 }
 void GetUVs(FbxMesh* inMesh, int inCtrlPointIndex, int inVertexCounter, XMFLOAT2 & outUV)
@@ -192,6 +206,8 @@ void GetUVs(FbxMesh* inMesh, int inCtrlPointIndex, int inVertexCounter, XMFLOAT2
 	switch (vertexUV->GetMappingMode())
 	{
 	case FbxGeometryElement::eByControlPoint:
+	{
+
 		switch (vertexUV->GetReferenceMode())
 		{
 		case FbxGeometryElement::eDirect:
@@ -208,10 +224,17 @@ void GetUVs(FbxMesh* inMesh, int inCtrlPointIndex, int inVertexCounter, XMFLOAT2
 			break;
 		}
 		default:
+		{
+
 			throw exception("invalid Reference");
 			break;
 		}
+		}
+		break;
+	}
 	case FbxGeometryElement::eByPolygonVertex:
+	{
+
 		switch (vertexUV->GetReferenceMode())
 		{
 		case FbxGeometryElement::eDirect:
@@ -228,12 +251,18 @@ void GetUVs(FbxMesh* inMesh, int inCtrlPointIndex, int inVertexCounter, XMFLOAT2
 			break;
 		}
 		default:
+		{
 			throw exception("invalid Reference");
 			break;
 		}
+		}
+		break;
+	}
 	default:
+	{
 		throw exception("invalid Reference");
 		break;
+	}
 	}
 }
 void GetTangent(FbxMesh* inMesh, int inCtrlPointIndex, int inVertexCounter, XMFLOAT3& outTangent)
@@ -247,6 +276,8 @@ void GetTangent(FbxMesh* inMesh, int inCtrlPointIndex, int inVertexCounter, XMFL
 	switch (vertexTangent->GetMappingMode())
 	{
 	case FbxGeometryElement::eByControlPoint:
+	{
+
 		switch (vertexTangent->GetReferenceMode())
 		{
 		case FbxGeometryElement::eDirect:
@@ -265,10 +296,16 @@ void GetTangent(FbxMesh* inMesh, int inCtrlPointIndex, int inVertexCounter, XMFL
 			break;
 		}
 		default:
+		{
 			throw exception("invalid reference");
 			break;
 		}
+		}
+		break;
+	}
 	case FbxGeometryElement::eByPolygonVertex:
+	{
+
 		switch (vertexTangent->GetReferenceMode())
 		{
 		case FbxGeometryElement::eDirect:
@@ -287,12 +324,18 @@ void GetTangent(FbxMesh* inMesh, int inCtrlPointIndex, int inVertexCounter, XMFL
 			break;
 		}
 		default:
+		{
 			throw exception("invalid reference");
 			break;
 		}
+		}
+		break;
+	}
 	default:
+	{
 		throw exception("invalid reference");
 		break;
+	}
 	}
 }
 bool LoadMesh(FbxNode* node, unordered_map<unsigned int, ControlPoint*> mControlPoints, unsigned int& mTriangleCount, vector<Triangle>&mTriangles, vector<BlendingVertex>&mVertices, unsigned int& vertCount)
@@ -428,7 +471,7 @@ __declspec(dllexport) void function(char * fileName, char * outFileNameMesh, cha
 			for (int i = 0; i < mSkeleton->joints.size(); i++)
 			{
 				unsigned int bone_size = (unsigned int)mSkeleton->joints[i]->bones.size();
-				fwrite(&bone_size, sizeof(unsigned int), 1 ,file);
+				fwrite(&bone_size, sizeof(unsigned int), 1, file);
 				fwrite(&mSkeleton->joints[i]->bones[0], sizeof(Bone), mSkeleton->joints[i]->bones.size(), file);
 				fwrite(&mSkeleton->joints[i]->Time, sizeof(float), 1, file);
 			}
@@ -439,7 +482,10 @@ __declspec(dllexport) void function(char * fileName, char * outFileNameMesh, cha
 		if (file)
 		{
 			fwrite(&bindposeCount, sizeof(unsigned int), 1, file);
-			fwrite(&bind_pose[0], sizeof(Bone), bindposeCount, file);
+			if (bindposeCount > 0)
+			{
+				fwrite(&bind_pose[0], sizeof(Bone), bindposeCount, file);
+			}
 			fclose(file);
 		}
 		delete converter;

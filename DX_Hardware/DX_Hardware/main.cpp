@@ -287,12 +287,12 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	CD3D11_BUFFER_DESC constBufferDesc(sizeof(VRAM), D3D11_BIND_CONSTANT_BUFFER);
 	device->CreateBuffer(&constBufferDesc, nullptr, &constBuffer);
 
-	char file[]{ "Bone" };
+	char file[]{ "Teddy_Idle.fbx" };
 	char mesh[]{ "mesh" };
 	char bone[]{ "bone" };
 	char animation[]{ "animation" };
 
-	//function(file, mesh, bone, animation);
+	function(file, mesh, bone, animation);
 
 	//functionality(mesh, bone, animation, )
 
