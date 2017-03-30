@@ -287,14 +287,19 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	CD3D11_BUFFER_DESC constBufferDesc(sizeof(VRAM), D3D11_BIND_CONSTANT_BUFFER);
 	device->CreateBuffer(&constBufferDesc, nullptr, &constBuffer);
 
-	char file[]{ "Teddy_Idle.fbx" };
-	char mesh[]{ "mesh" };
-	char bone[]{ "bone" };
-	char animation[]{ "animation" };
+	char file[]{ "Box_Idle.fbx" };
+	char mesh[]{ "mesh.bin" };
+	char bone[]{ "bone.bin" };
+	char animation[]{ "animation.bin" };
 
 	function(file, mesh, bone, animation);
 
-	//functionality(mesh, bone, animation, )
+	unsigned int triCount = 0;
+	vector<unsigned int> triIndices;
+	vector<BlendingVertex> verts;
+	Skeleton * mSkeleton = new Skeleton();
+	vector<Bone> bind_pose;
+	functionality(mesh, bone, animation, triCount, triIndices, verts, mSkeleton, bind_pose);
 
 }
 

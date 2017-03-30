@@ -501,7 +501,7 @@ __declspec(dllexport) void function(char * fileName, char * outFileNameMesh, cha
 	}
 }
 
-__declspec(dllexport) bool functionality(char * inFileNameMesh, char * inFileNameBone, char * inFileNameAnimations, unsigned int & triCount, vector<unsigned int>& triIndices, vector<BlendingVertex>& verts, Skeleton *& mSkeleton, vector<Bone>& bind_pose)
+__declspec(dllexport) bool functionality(char * inFileNameMesh, char * inFileNameBone, char * inFileNameAnimations, unsigned int & triCount, vector<unsigned int>& triIndices, vector<BlendingVertex>& verts, Skeleton* & mSkeleton, vector<Bone>& bind_pose)
 {
 	FILE * f;
 	bool bReturn = false;
@@ -529,7 +529,7 @@ __declspec(dllexport) bool functionality(char * inFileNameMesh, char * inFileNam
 			{
 				VertexBlending tb;
 				fread(&tb.mBlendingIndex, sizeof(unsigned int), 1, f);
-				fread(&tb.mBlendWeight, sizeof(unsigned int), 1, f);
+				fread(&tb.mBlendWeight, sizeof(double), 1, f);
 				t.mVertexBlendingInfos.push_back(tb);
 			}
 			verts.push_back(t);
