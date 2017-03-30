@@ -287,6 +287,15 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	CD3D11_BUFFER_DESC constBufferDesc(sizeof(VRAM), D3D11_BIND_CONSTANT_BUFFER);
 	device->CreateBuffer(&constBufferDesc, nullptr, &constBuffer);
 
+	char file[]{ "Bone" };
+	char mesh[]{ "mesh" };
+	char bone[]{ "bone" };
+	char animation[]{ "animation" };
+
+	//function(file, mesh, bone, animation);
+
+	//functionality(mesh, bone, animation, )
+
 }
 
 //************************************************************
@@ -347,7 +356,6 @@ bool DEMO_APP::Run()
 	char * two = nullptr;
 	char * three = nullptr;
 	char * four = nullptr;
-	//function();
 
 	context->OMSetRenderTargets(1, &rtv, depthStencilView);
 	context->ClearRenderTargetView(rtv, color);

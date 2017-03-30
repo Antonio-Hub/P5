@@ -366,7 +366,7 @@ void ProcessGeometry(unordered_map<unsigned int, ControlPoint*>mControlPoints, S
 		ProcessGeometry(mControlPoints, mSkeleton, inNode->GetChild(i), triCount, triIndices, verts, hasAnimation, mScene, bind_pose, vertCount);
 	}
 }
-__declspec(dllexport) void function(char * fileName, char * outFileNameMesh, char * outFileNameBine, char * outFileNameAnimations)
+__declspec(dllexport) void function(char * fileName, char * outFileNameMesh, char * outFileNameBone, char * outFileNameAnimations)
 {
 
 	FbxManager * mManager = nullptr;
@@ -435,7 +435,7 @@ __declspec(dllexport) void function(char * fileName, char * outFileNameMesh, cha
 			fclose(file);
 		}
 		file = nullptr;
-		fopen_s(&file, outFileNameBine, "wb");
+		fopen_s(&file, outFileNameBone, "wb");
 		if (file)
 		{
 			fwrite(&bindposeCount, sizeof(unsigned int), 1, file);
@@ -455,11 +455,11 @@ __declspec(dllexport) void function(char * fileName, char * outFileNameMesh, cha
 	}
 }
 
-__declspec(dllexport) bool functionality(char * fileName, char * filenameBone, char * fileNameAnimation, unsigned int & triCount, vector<unsigned int>& triIndices, vector<BlendingVertex>& verts, Skeleton *& mSkeleton, vector<Bone>& bind_pose)
+__declspec(dllexport) bool functionality(char * inFileNameMesh, char * inFileNameBone, char * inFileNameAnimations, unsigned int & triCount, vector<unsigned int>& triIndices, vector<BlendingVertex>& verts, Skeleton *& mSkeleton, vector<Bone>& bind_pose)
 {
 	FILE * f;
 	bool bReturn = false;
-	fopen_s(&f, fileName, "rb");
+	fopen_s(&f, inFileNameMesh, "rb");
 	if (f)
 	{
 		bReturn = true;
@@ -491,7 +491,7 @@ __declspec(dllexport) bool functionality(char * fileName, char * filenameBone, c
 		fclose(f);
 	}
 	f = nullptr;
-	fopen_s(&f, filenameBone, "rb");
+	fopen_s(&f, inFileNameBone, "rb");
 	if (f)
 	{
 		unsigned int bindCount = 0;
@@ -501,7 +501,7 @@ __declspec(dllexport) bool functionality(char * fileName, char * filenameBone, c
 		fclose(f);
 	}
 	f = nullptr;
-	fopen_s(&f, fileNameAnimation, "rb");
+	fopen_s(&f, inFileNameAnimations, "rb");
 	if (f)
 	{
 		unsigned int frameCount = 0;
