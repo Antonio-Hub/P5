@@ -40,6 +40,10 @@ void GetControlPoints(FbxNode* node, unordered_map<unsigned int, ControlPoint*>&
 	{
 		ControlPoint* currCtrlPoint = new ControlPoint();
 		XMFLOAT3 currPosition;
+		currPosition.x = (float)currMesh->GetControlPointAt(i).mData[0];
+		currPosition.y = (float)currMesh->GetControlPointAt(i).mData[1];
+		currPosition.z = (float)currMesh->GetControlPointAt(i).mData[2];
+		currCtrlPoint->mPosition = currPosition;
 		pControlPoints[i] = currCtrlPoint;
 	}
 }
@@ -515,7 +519,6 @@ __declspec(dllexport) bool functionality(char * inFileNameMesh, char * inFileNam
 		fread(&vertCount, sizeof(unsigned int), 1, f);
 		triIndices.resize(triCount * 3);
 		fread(&triIndices[0], sizeof(unsigned int), triCount * 3, f);
-		verts.resize(vertCount);
 		for (unsigned int i = 0; i < (unsigned)vertCount; i++)
 		{
 			unsigned int blendInfoSize = 0;

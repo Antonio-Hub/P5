@@ -33,6 +33,7 @@ using namespace DirectX;
 
 #include "../FBX/FBX.h"
 
+#pragma region mouse and keyboard imput class
 class Imput
 {
 public:
@@ -59,6 +60,7 @@ Imput::~Imput()
 }
 
 Imput imput;
+#pragma endregion
 
 //************************************************************
 //************ SIMPLE WINDOWS APP CLASS **********************
@@ -87,10 +89,9 @@ private:
 	ID3D11Texture2D * depthStencil = nullptr;
 	ID3D11DepthStencilView * depthStencilView = nullptr;
 
-	int vertSize = 0;
 	ID3D11Buffer * vertbuffer = NULL;
 	ID3D11Buffer * indexbuffer = NULL;
-	unsigned int circlevertcount = 0;
+	unsigned int indexCount = 0;
 	ID3D11InputLayout * layout = NULL;
 	struct SEND_TO_VRAM { XMFLOAT4 color; XMFLOAT2 offset; XMFLOAT2 padding; };
 
@@ -238,39 +239,71 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	ZeroMemory(&InitData, sizeof(InitData));
 	InitData.pSysMem = circle;
 	device->CreateBuffer(&bufferdescription, &InitData, &vertbuffer);*/
-	
-	SIMPLE_VERTEX circle[4]{};
-	circle[0].xyzw = XMFLOAT4(1.0f, 0.0f, 1.0f, 0);
-	circle[1].xyzw = XMFLOAT4(1.0f, 0.0f, -1.0f, 0);
-	circle[2].xyzw = XMFLOAT4(-1.0f, 0.0f, -1.0f, 0);
-	circle[3].xyzw = XMFLOAT4(-1.0f, 0.0f, 1.0f, 0);
+
+#pragma region fbx loading
+	char file[]{ "Box_Idle.fbx" };
+	char mesh[]{ "mesh.bin" };
+	char bone[]{ "bone.bin" };
+	char animation[]{ "animation.bin" };
+
+	function(file, mesh, bone, animation);
+
+	unsigned int triCount = 0;
+	vector<unsigned int> triIndices;
+	vector<BlendingVertex> verts;
+	Skeleton * mSkeleton = new Skeleton();
+	vector<Bone> bind_pose;
+	functionality(mesh, bone, animation, triCount, triIndices, verts, mSkeleton, bind_pose);
+#pragma endregion
+
+	SIMPLE_VERTEX * model;
+	model = new SIMPLE_VERTEX[verts.size()];
+	for (size_t i = 0; i < verts.size(); i++)
+	{
+		model[i].xyzw.x = verts[i].mPosition.x;
+		model[i].xyzw.y = verts[i].mPosition.y;
+		model[i].xyzw.z = verts[i].mPosition.z;
+		model[i].xyzw.w = 1.0f;
+
+	}
+	SIMPLE_VERTEX groundPlane[4]{};
+	groundPlane[0].xyzw = XMFLOAT4(1.0f, 0.0f, 1.0f, 0);
+	groundPlane[1].xyzw = XMFLOAT4(1.0f, 0.0f, -1.0f, 0);
+	groundPlane[2].xyzw = XMFLOAT4(-1.0f, 0.0f, -1.0f, 0);
+	groundPlane[3].xyzw = XMFLOAT4(-1.0f, 0.0f, 1.0f, 0);
 
 	D3D11_BUFFER_DESC vertbufferdescription;
 	ZeroMemory(&vertbufferdescription, sizeof(vertbufferdescription));
 	vertbufferdescription.Usage = D3D11_USAGE_IMMUTABLE;
-	vertbufferdescription.ByteWidth = sizeof(SIMPLE_VERTEX) * 4;
+	vertbufferdescription.ByteWidth = sizeof(SIMPLE_VERTEX) * verts.size();
 	vertbufferdescription.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	vertbufferdescription.CPUAccessFlags = NULL;
 	vertbufferdescription.MiscFlags = NULL;
 	vertbufferdescription.StructureByteStride = sizeof(SIMPLE_VERTEX);
 	D3D11_SUBRESOURCE_DATA vertInitData;
 	ZeroMemory(&vertInitData, sizeof(vertInitData));
-	vertInitData.pSysMem = circle;
+	vertInitData.pSysMem = model;
 	device->CreateBuffer(&vertbufferdescription, &vertInitData, &vertbuffer);
 
-	unsigned int index[6]{ 0,1,3,1,2,3 };
+	indexCount = triIndices.size();
+	unsigned int * modelIndex;
+	modelIndex = new unsigned int[indexCount];
+	for (size_t i = 0; i < indexCount; i++)
+		modelIndex[i] = triIndices[i];
+
+	unsigned int groundPlaneindex[6]{ 0,1,3,1,2,3 };
 
 	D3D11_BUFFER_DESC indexbufferdescription;
 	ZeroMemory(&indexbufferdescription, sizeof(indexbufferdescription));
 	indexbufferdescription.Usage = D3D11_USAGE_IMMUTABLE;
-	indexbufferdescription.ByteWidth = sizeof(unsigned int) * 6;
+	indexbufferdescription.ByteWidth = sizeof(unsigned int) * triIndices.size();
 	indexbufferdescription.BindFlags = D3D11_BIND_INDEX_BUFFER;
 	indexbufferdescription.CPUAccessFlags = NULL;
 	indexbufferdescription.MiscFlags = NULL;
 	indexbufferdescription.StructureByteStride = sizeof(unsigned int);
 	D3D11_SUBRESOURCE_DATA indexInitData;
 	ZeroMemory(&indexInitData, sizeof(indexInitData));
-	indexInitData.pSysMem = index;
+	indexInitData.pSysMem = modelIndex;
 	device->CreateBuffer(&indexbufferdescription, &indexInitData, &indexbuffer);
 
 
@@ -287,19 +320,6 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	CD3D11_BUFFER_DESC constBufferDesc(sizeof(VRAM), D3D11_BIND_CONSTANT_BUFFER);
 	device->CreateBuffer(&constBufferDesc, nullptr, &constBuffer);
 
-	char file[]{ "Box_Idle.fbx" };
-	char mesh[]{ "mesh.bin" };
-	char bone[]{ "bone.bin" };
-	char animation[]{ "animation.bin" };
-
-	function(file, mesh, bone, animation);
-
-	unsigned int triCount = 0;
-	vector<unsigned int> triIndices;
-	vector<BlendingVertex> verts;
-	Skeleton * mSkeleton = new Skeleton();
-	vector<Bone> bind_pose;
-	functionality(mesh, bone, animation, triCount, triIndices, verts, mSkeleton, bind_pose);
 
 }
 
@@ -356,12 +376,8 @@ bool DEMO_APP::Run()
 		XMStoreFloat4x4(&camera, newcamera);
 		XMStoreFloat4x4(&send_to_ram.camView, XMMatrixTranspose(newcamera));
 	}
-	float color[4]{ 0.0f, 0.0f, 1.0f, 0.0f };
-	char * one = nullptr;
-	char * two = nullptr;
-	char * three = nullptr;
-	char * four = nullptr;
 
+	float color[4]{ 0.0f, 1.0f, 0.0f, 0.0f };
 	context->OMSetRenderTargets(1, &rtv, depthStencilView);
 	context->ClearRenderTargetView(rtv, color);
 	context->ClearDepthStencilView(depthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
@@ -388,7 +404,7 @@ bool DEMO_APP::Run()
 		1,
 		&constBuffer
 	);
-	context->DrawIndexed(6, 0, 0);
+	context->DrawIndexed(indexCount, 0, 0);
 	swapchain->Present(0, 0);
 	return true;
 }
