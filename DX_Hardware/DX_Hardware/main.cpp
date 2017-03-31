@@ -86,12 +86,15 @@ private:
 	ID3D11DeviceContext * context = NULL;
 	ID3D11RenderTargetView * rtv = NULL;
 	D3D11_VIEWPORT viewport;
+
 	ID3D11Texture2D * depthStencil = nullptr;
 	ID3D11DepthStencilView * depthStencilView = nullptr;
+	ID3D11RasterizerState * rasterizerState = nullptr;
 
 	ID3D11Buffer * vertbuffer = NULL;
 	ID3D11Buffer * indexbuffer = NULL;
 	unsigned int indexCount = 0;
+
 	ID3D11InputLayout * layout = NULL;
 	struct SEND_TO_VRAM { XMFLOAT4 color; XMFLOAT2 offset; XMFLOAT2 padding; };
 
@@ -101,8 +104,8 @@ private:
 
 
 	ID3D11Buffer * constBuffer = NULL;
-
 	VRAM send_to_ram;
+
 	XMFLOAT4X4 camera;
 
 
@@ -189,7 +192,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	viewport.TopLeftX = 0;
 	viewport.TopLeftY = 0;
 
-	//depth stencl
+#pragma region	depth stencl
 	CD3D11_TEXTURE2D_DESC depthStencilDesc(
 		DXGI_FORMAT_D24_UNORM_S8_UINT,
 		lround(BACKBUFFER_WIDTH),
@@ -209,36 +212,16 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 		&depthStencilViewDesc,
 		&depthStencilView
 	);
+#pragma endregion
 
-	/*SIMPLE_VERTEX circle[366]{};
-	for (size_t i = 0; i < 366; i++)
-	{
-		XMFLOAT4 pos = XMFLOAT4((sin((i * (3.14f / 180)))), (cos((i * (3.14f / 180)))),0.0f,1.0f);
-		circle[i].xyzw = pos;
-	}
-
-
-
-	/*circle[0].xyzw = XMFLOAT4(-1.0f, 0.0f, 1.0f, 0);
-	circle[1].xyzw = XMFLOAT4(1.0f, 0.0f, 1.0f, 0);
-	circle[2].xyzw = XMFLOAT4(1.0f, 0.0f, -1.0f, 0);
-
-	circle[3].xyzw = XMFLOAT4(-1.0f, 0.0f, 1.0f, 0);
-	circle[4].xyzw = XMFLOAT4(1.0f, 0.0f, -1.0f, 0);
-	circle[5].xyzw = XMFLOAT4(-1.0f, 0.0f, -1.0f, 0);
-	
-	D3D11_BUFFER_DESC bufferdescription;
-	ZeroMemory(&bufferdescription, sizeof(bufferdescription));
-	bufferdescription.Usage = D3D11_USAGE_IMMUTABLE;
-	bufferdescription.ByteWidth = sizeof(SIMPLE_VERTEX) * 6;
-	bufferdescription.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	bufferdescription.CPUAccessFlags = NULL;
-	bufferdescription.MiscFlags = NULL;
-	bufferdescription.StructureByteStride = sizeof(SIMPLE_VERTEX);
-	D3D11_SUBRESOURCE_DATA InitData;
-	ZeroMemory(&InitData, sizeof(InitData));
-	InitData.pSysMem = circle;
-	device->CreateBuffer(&bufferdescription, &InitData, &vertbuffer);*/
+#pragma region raster state wireframe & culling
+	D3D11_RASTERIZER_DESC wireFrameDesc;
+	ZeroMemory(&wireFrameDesc, sizeof(D3D11_RASTERIZER_DESC));
+	wireFrameDesc.FillMode = D3D11_FILL_WIREFRAME;
+	wireFrameDesc.CullMode = D3D11_CULL_NONE;
+	wireFrameDesc.DepthClipEnable = true;
+	device->CreateRasterizerState(&wireFrameDesc, &rasterizerState);
+#pragma endregion
 
 #pragma region fbx loading
 	char file[]{ "Box_Idle.fbx" };
@@ -273,9 +256,9 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	groundPlane[3].xyzw = XMFLOAT4(-1.0f, 0.0f, 1.0f, 0);
 
 	D3D11_BUFFER_DESC vertbufferdescription;
-	ZeroMemory(&vertbufferdescription, sizeof(vertbufferdescription));
+	ZeroMemory(&vertbufferdescription, sizeof(D3D11_BUFFER_DESC));
 	vertbufferdescription.Usage = D3D11_USAGE_IMMUTABLE;
-	vertbufferdescription.ByteWidth = sizeof(SIMPLE_VERTEX) * verts.size();
+	vertbufferdescription.ByteWidth = (UINT)(sizeof(SIMPLE_VERTEX) * verts.size());
 	vertbufferdescription.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	vertbufferdescription.CPUAccessFlags = NULL;
 	vertbufferdescription.MiscFlags = NULL;
@@ -285,7 +268,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	vertInitData.pSysMem = model;
 	device->CreateBuffer(&vertbufferdescription, &vertInitData, &vertbuffer);
 
-	indexCount = triIndices.size();
+	indexCount = (unsigned int)triIndices.size();
 	unsigned int * modelIndex;
 	modelIndex = new unsigned int[indexCount];
 	for (size_t i = 0; i < indexCount; i++)
@@ -294,9 +277,9 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	unsigned int groundPlaneindex[6]{ 0,1,3,1,2,3 };
 
 	D3D11_BUFFER_DESC indexbufferdescription;
-	ZeroMemory(&indexbufferdescription, sizeof(indexbufferdescription));
+	ZeroMemory(&indexbufferdescription, sizeof(D3D11_BUFFER_DESC));
 	indexbufferdescription.Usage = D3D11_USAGE_IMMUTABLE;
-	indexbufferdescription.ByteWidth = sizeof(unsigned int) * triIndices.size();
+	indexbufferdescription.ByteWidth = (UINT)(sizeof(unsigned int) * triIndices.size());
 	indexbufferdescription.BindFlags = D3D11_BIND_INDEX_BUFFER;
 	indexbufferdescription.CPUAccessFlags = NULL;
 	indexbufferdescription.MiscFlags = NULL;
@@ -397,6 +380,7 @@ bool DEMO_APP::Run()
 	context->VSSetShader(vertexshader, NULL, NULL);
 	context->PSSetShader(pixelshader, NULL, NULL);
 
+
 	context->IASetInputLayout(layout);
 	context->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	context->VSSetConstantBuffers(
@@ -404,6 +388,7 @@ bool DEMO_APP::Run()
 		1,
 		&constBuffer
 	);
+	context->RSSetState(rasterizerState);
 	context->DrawIndexed(indexCount, 0, 0);
 	swapchain->Present(0, 0);
 	return true;
@@ -419,6 +404,15 @@ bool DEMO_APP::ShutDown()
 	context->Release();
 	rtv->Release();
 	swapchain->Release();
+	depthStencil->Release();
+	depthStencilView->Release();
+//	rasterizerState->Release();
+	vertbuffer->Release();
+	indexbuffer->Release();
+	layout->Release();
+	vertexshader->Release();
+	pixelshader->Release();
+	constBuffer->Release();
 	UnregisterClass(L"DirectXApplication", application);
 	return true;
 }
