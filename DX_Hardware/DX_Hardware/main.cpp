@@ -89,11 +89,18 @@ private:
 
 	ID3D11Texture2D * depthStencil = nullptr;
 	ID3D11DepthStencilView * depthStencilView = nullptr;
-	ID3D11RasterizerState * rasterizerState = nullptr;
+	ID3D11RasterizerState * wireFrameRasterizerState = nullptr;
+	ID3D11RasterizerState * SolidRasterizerState = nullptr;
 
-	ID3D11Buffer * vertbuffer = NULL;
-	ID3D11Buffer * indexbuffer = NULL;
-	unsigned int indexCount = 0;
+	//model 
+	ID3D11Buffer * modelvertbuffer = NULL;
+	ID3D11Buffer * modelindexbuffer = NULL;
+	unsigned int modelindexCount = 0;
+
+	//ground plane
+	ID3D11Buffer * groundvertbuffer = NULL;
+	ID3D11Buffer * groundindexbuffer = NULL;
+	unsigned int groundindexCount = 0;
 
 	ID3D11InputLayout * layout = NULL;
 	struct SEND_TO_VRAM { XMFLOAT4 color; XMFLOAT2 offset; XMFLOAT2 padding; };
@@ -220,7 +227,12 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	wireFrameDesc.FillMode = D3D11_FILL_WIREFRAME;
 	wireFrameDesc.CullMode = D3D11_CULL_NONE;
 	wireFrameDesc.DepthClipEnable = true;
-	device->CreateRasterizerState(&wireFrameDesc, &rasterizerState);
+	device->CreateRasterizerState(&wireFrameDesc, &wireFrameRasterizerState);
+	ZeroMemory(&wireFrameDesc, sizeof(D3D11_RASTERIZER_DESC));
+	wireFrameDesc.FillMode = D3D11_FILL_SOLID;
+	wireFrameDesc.CullMode = D3D11_CULL_BACK;
+	wireFrameDesc.DepthClipEnable = true;
+	device->CreateRasterizerState(&wireFrameDesc, &SolidRasterizerState);
 #pragma endregion
 
 #pragma region fbx loading
@@ -239,6 +251,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	functionality(mesh, bone, animation, triCount, triIndices, verts, mSkeleton, bind_pose);
 #pragma endregion
 
+#pragma region model buffers
 	SIMPLE_VERTEX * model;
 	model = new SIMPLE_VERTEX[verts.size()];
 	for (size_t i = 0; i < verts.size(); i++)
@@ -247,13 +260,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 		model[i].xyzw.y = verts[i].mPosition.y;
 		model[i].xyzw.z = verts[i].mPosition.z;
 		model[i].xyzw.w = 1.0f;
-
 	}
-	SIMPLE_VERTEX groundPlane[4]{};
-	groundPlane[0].xyzw = XMFLOAT4(1.0f, 0.0f, 1.0f, 0);
-	groundPlane[1].xyzw = XMFLOAT4(1.0f, 0.0f, -1.0f, 0);
-	groundPlane[2].xyzw = XMFLOAT4(-1.0f, 0.0f, -1.0f, 0);
-	groundPlane[3].xyzw = XMFLOAT4(-1.0f, 0.0f, 1.0f, 0);
 
 	D3D11_BUFFER_DESC vertbufferdescription;
 	ZeroMemory(&vertbufferdescription, sizeof(D3D11_BUFFER_DESC));
@@ -266,15 +273,13 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	D3D11_SUBRESOURCE_DATA vertInitData;
 	ZeroMemory(&vertInitData, sizeof(vertInitData));
 	vertInitData.pSysMem = model;
-	device->CreateBuffer(&vertbufferdescription, &vertInitData, &vertbuffer);
-
-	indexCount = (unsigned int)triIndices.size();
+	device->CreateBuffer(&vertbufferdescription, &vertInitData, &modelvertbuffer);
+	
+	modelindexCount = (unsigned int)triIndices.size();
 	unsigned int * modelIndex;
-	modelIndex = new unsigned int[indexCount];
-	for (size_t i = 0; i < indexCount; i++)
+	modelIndex = new unsigned int[modelindexCount];
+	for (size_t i = 0; i < modelindexCount; i++)
 		modelIndex[i] = triIndices[i];
-
-	unsigned int groundPlaneindex[6]{ 0,1,3,1,2,3 };
 
 	D3D11_BUFFER_DESC indexbufferdescription;
 	ZeroMemory(&indexbufferdescription, sizeof(D3D11_BUFFER_DESC));
@@ -287,12 +292,43 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	D3D11_SUBRESOURCE_DATA indexInitData;
 	ZeroMemory(&indexInitData, sizeof(indexInitData));
 	indexInitData.pSysMem = modelIndex;
-	device->CreateBuffer(&indexbufferdescription, &indexInitData, &indexbuffer);
+	device->CreateBuffer(&indexbufferdescription, &indexInitData, &modelindexbuffer);
 
+	groundindexCount = 6;
+	SIMPLE_VERTEX groundPlane[4]{};
+	groundPlane[0].xyzw = XMFLOAT4(2.0f, 0.0f, 2.0f, 0);
+	groundPlane[1].xyzw = XMFLOAT4(2.0f, 0.0f, -2.0f, 0);
+	groundPlane[2].xyzw = XMFLOAT4(-2.0f, 0.0f, -2.0f, 0);
+	groundPlane[3].xyzw = XMFLOAT4(-2.0f, 0.0f, 2.0f, 0);
 
+	ZeroMemory(&vertbufferdescription, sizeof(D3D11_BUFFER_DESC));
+	vertbufferdescription.Usage = D3D11_USAGE_IMMUTABLE;
+	vertbufferdescription.ByteWidth = (UINT)(sizeof(SIMPLE_VERTEX) * groundindexCount);
+	vertbufferdescription.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	vertbufferdescription.CPUAccessFlags = NULL;
+	vertbufferdescription.MiscFlags = NULL;
+	vertbufferdescription.StructureByteStride = sizeof(SIMPLE_VERTEX);
+	ZeroMemory(&vertInitData, sizeof(vertInitData));
+	vertInitData.pSysMem = groundPlane;
+	device->CreateBuffer(&vertbufferdescription, &vertInitData, &groundvertbuffer);
+
+	unsigned int groundPlaneindex[6]{ 0,1,3,1,2,3 };
+	
+	ZeroMemory(&indexbufferdescription, sizeof(D3D11_BUFFER_DESC));
+	indexbufferdescription.Usage = D3D11_USAGE_IMMUTABLE;
+	indexbufferdescription.ByteWidth = (UINT)(sizeof(unsigned int) * groundindexCount);
+	indexbufferdescription.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	indexbufferdescription.CPUAccessFlags = NULL;
+	indexbufferdescription.MiscFlags = NULL;
+	indexbufferdescription.StructureByteStride = sizeof(unsigned int);
+	ZeroMemory(&indexInitData, sizeof(indexInitData));
+	indexInitData.pSysMem = groundPlaneindex;
+	device->CreateBuffer(&indexbufferdescription, &indexInitData, &groundindexbuffer);
+#pragma endregion
 
 	device->CreateVertexShader(Trivial_VS, sizeof(Trivial_VS), NULL, &vertexshader);
 	device->CreatePixelShader(Trivial_PS, sizeof(Trivial_PS), NULL, &pixelshader);
+
 	D3D11_INPUT_ELEMENT_DESC vertlayout[] =
 	{
 		"POSITION", 0,DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA,0 /*,{"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 }*/
@@ -375,8 +411,8 @@ bool DEMO_APP::Run()
 	);
 	UINT stride = sizeof(SIMPLE_VERTEX);
 	UINT offset = 0;
-	context->IASetVertexBuffers(0, 1, &vertbuffer, &stride, &offset);
-	context->IASetIndexBuffer(indexbuffer, DXGI_FORMAT_R32_UINT, offset);
+	context->IASetVertexBuffers(0, 1, &modelvertbuffer, &stride, &offset);
+	context->IASetIndexBuffer(modelindexbuffer, DXGI_FORMAT_R32_UINT, offset);
 	context->VSSetShader(vertexshader, NULL, NULL);
 	context->PSSetShader(pixelshader, NULL, NULL);
 
@@ -388,8 +424,19 @@ bool DEMO_APP::Run()
 		1,
 		&constBuffer
 	);
-	context->RSSetState(rasterizerState);
-	context->DrawIndexed(indexCount, 0, 0);
+	context->RSSetState(wireFrameRasterizerState);
+	context->DrawIndexed(modelindexCount, 0, 0);
+
+
+	//draw ground ground 
+	context->IASetVertexBuffers(0, 1, &groundvertbuffer, &stride, &offset);
+	context->IASetIndexBuffer(groundindexbuffer, DXGI_FORMAT_R32_UINT, offset);
+	context->RSSetState(SolidRasterizerState);
+	context->DrawIndexed(groundindexCount, 0, 0);
+	//end ground draw
+
+
+
 	swapchain->Present(0, 0);
 	return true;
 }
@@ -406,9 +453,6 @@ bool DEMO_APP::ShutDown()
 	swapchain->Release();
 	depthStencil->Release();
 	depthStencilView->Release();
-//	rasterizerState->Release();
-	vertbuffer->Release();
-	indexbuffer->Release();
 	layout->Release();
 	vertexshader->Release();
 	pixelshader->Release();
