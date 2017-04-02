@@ -154,8 +154,8 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	Time.Restart();
 
 	//camera data
-	static const XMVECTORF32 eye = { 0.0f, 5.0f, -10.0f, 0.0f };
-	static const XMVECTORF32 at = { 0.0f, -1.0f, 1.0f, 0.0f };
+	static const XMVECTORF32 eye = { 0.0f, 350.0f, -300.0f, 0.0f };
+	static const XMVECTORF32 at = { 0.0f, 0.0f, 0.0f, 0.0f };
 	static const XMVECTORF32 up = { 0.0f, 1.0f, 0.0f, 0.0f };
 	XMStoreFloat4x4(&send_to_ram.camView, XMMatrixTranspose(XMMatrixLookAtLH(eye, at, up)));
 	XMStoreFloat4x4(&camera, XMMatrixLookAtLH(eye, at, up));
@@ -236,7 +236,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 #pragma endregion
 
 #pragma region fbx loading
-	char file[]{ "Box_Idle.fbx" };
+	char file[]{ "Teddy_Idle.fbx" };
 	char mesh[]{ "mesh.bin" };
 	char bone[]{ "bone.bin" };
 	char animation[]{ "animation.bin" };
@@ -252,6 +252,8 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 #pragma endregion
 
 #pragma region model buffers
+
+	//teddy//
 	SIMPLE_VERTEX * model;
 	model = new SIMPLE_VERTEX[verts.size()];
 	for (size_t i = 0; i < verts.size(); i++)
@@ -293,13 +295,15 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	ZeroMemory(&indexInitData, sizeof(indexInitData));
 	indexInitData.pSysMem = modelIndex;
 	device->CreateBuffer(&indexbufferdescription, &indexInitData, &modelindexbuffer);
+	//end teddy//
 
+	//ground plane//
 	groundindexCount = 6;
 	SIMPLE_VERTEX groundPlane[4]{};
-	groundPlane[0].xyzw = XMFLOAT4(2.0f, 0.0f, 2.0f, 0);
-	groundPlane[1].xyzw = XMFLOAT4(2.0f, 0.0f, -2.0f, 0);
-	groundPlane[2].xyzw = XMFLOAT4(-2.0f, 0.0f, -2.0f, 0);
-	groundPlane[3].xyzw = XMFLOAT4(-2.0f, 0.0f, 2.0f, 0);
+	groundPlane[0].xyzw = XMFLOAT4(10.0f, 0.0f, 10.0f, 0);
+	groundPlane[1].xyzw = XMFLOAT4(10.0f, 0.0f, -10.0f, 0);
+	groundPlane[2].xyzw = XMFLOAT4(-10.0f, 0.0f, -10.0f, 0);
+	groundPlane[3].xyzw = XMFLOAT4(-10.0f, 0.0f, 10.0f, 0);
 
 	ZeroMemory(&vertbufferdescription, sizeof(D3D11_BUFFER_DESC));
 	vertbufferdescription.Usage = D3D11_USAGE_IMMUTABLE;
@@ -324,6 +328,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	ZeroMemory(&indexInitData, sizeof(indexInitData));
 	indexInitData.pSysMem = groundPlaneindex;
 	device->CreateBuffer(&indexbufferdescription, &indexInitData, &groundindexbuffer);
+	//end ground plane//
 #pragma endregion
 
 	device->CreateVertexShader(Trivial_VS, sizeof(Trivial_VS), NULL, &vertexshader);
