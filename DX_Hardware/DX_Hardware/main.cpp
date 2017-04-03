@@ -69,7 +69,7 @@ Imput imput;
 class DEMO_APP
 {
 public:
-	struct SIMPLE_VERTEX { XMFLOAT4 xyzw;/* XMFLOAT4 color; */ };
+	struct SIMPLE_VERTEX { XMFLOAT4 xyzw; XMFLOAT4 color;  };
 	struct VRAM { XMFLOAT4X4 camView; XMFLOAT4X4 camProj; XMFLOAT4X4 modelPos; };
 	XTime Time;
 
@@ -143,7 +143,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	RECT window_size = { 0, 0, BACKBUFFER_WIDTH, BACKBUFFER_HEIGHT };
 	AdjustWindowRect(&window_size, WS_OVERLAPPEDWINDOW, false);
 
-	window = CreateWindow(L"DirectXApplication", L"CGS Hardware Project", WS_OVERLAPPEDWINDOW & ~(WS_THICKFRAME | WS_MAXIMIZEBOX),
+	window = CreateWindow(L"DirectXApplication", L"Antonio Arbona", WS_OVERLAPPEDWINDOW & ~(WS_THICKFRAME | WS_MAXIMIZEBOX),
 		CW_USEDEFAULT, CW_USEDEFAULT, window_size.right - window_size.left, window_size.bottom - window_size.top,
 		NULL, NULL, application, this);
 
@@ -256,12 +256,17 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	//teddy//
 	SIMPLE_VERTEX * model;
 	model = new SIMPLE_VERTEX[verts.size()];
+	float modelColor[4]{ 0.0f, 0.0f, 1.0f, 0.0f };
 	for (size_t i = 0; i < verts.size(); i++)
 	{
 		model[i].xyzw.x = verts[i].mPosition.x;
 		model[i].xyzw.y = verts[i].mPosition.y;
 		model[i].xyzw.z = verts[i].mPosition.z;
 		model[i].xyzw.w = 1.0f;
+		model[i].color.x = modelColor[0];
+		model[i].color.y = modelColor[1];
+		model[i].color.z = modelColor[2];
+		model[i].color.w = modelColor[3];
 	}
 
 	D3D11_BUFFER_DESC vertbufferdescription;
@@ -300,11 +305,18 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	//ground plane//
 	groundindexCount = 6;
 	SIMPLE_VERTEX groundPlane[4]{};
-	groundPlane[0].xyzw = XMFLOAT4(10.0f, 0.0f, 10.0f, 0);
-	groundPlane[1].xyzw = XMFLOAT4(10.0f, 0.0f, -10.0f, 0);
-	groundPlane[2].xyzw = XMFLOAT4(-10.0f, 0.0f, -10.0f, 0);
-	groundPlane[3].xyzw = XMFLOAT4(-10.0f, 0.0f, 10.0f, 0);
-
+	groundPlane[0].xyzw = XMFLOAT4(100.0f, 0.0f, 100.0f, 0);
+	groundPlane[1].xyzw = XMFLOAT4(100.0f, 0.0f, -100.0f, 0);
+	groundPlane[2].xyzw = XMFLOAT4(-100.0f, 0.0f, -100.0f, 0);
+	groundPlane[3].xyzw = XMFLOAT4(-100.0f, 0.0f, 100.0f, 0);
+	float groundColor[4]{ 1.0f, 1.0f, 0.0f, 0.0f };
+	for (size_t i = 0; i < 4; i++)
+	{
+		groundPlane[i].color.x = groundColor[0];
+		groundPlane[i].color.y = groundColor[1];
+		groundPlane[i].color.z = groundColor[2];
+		groundPlane[i].color.w = groundColor[3];
+	}
 	ZeroMemory(&vertbufferdescription, sizeof(D3D11_BUFFER_DESC));
 	vertbufferdescription.Usage = D3D11_USAGE_IMMUTABLE;
 	vertbufferdescription.ByteWidth = (UINT)(sizeof(SIMPLE_VERTEX) * groundindexCount);
@@ -336,7 +348,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 
 	D3D11_INPUT_ELEMENT_DESC vertlayout[] =
 	{
-		"POSITION", 0,DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA,0 /*,{"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 }*/
+		"POSITION", 0,DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA,0 ,{"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 }
 	};
 	UINT numElements = ARRAYSIZE(vertlayout);
 	device->CreateInputLayout(vertlayout, numElements, Trivial_VS, sizeof(Trivial_VS), &layout);
