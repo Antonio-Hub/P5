@@ -70,7 +70,7 @@ Imput imput;
 class DEMO_APP
 {
 public:
-	struct SIMPLE_VERTEX { XMFLOAT4 xyzw; XMFLOAT4 color;  };
+	struct SIMPLE_VERTEX { XMFLOAT4 xyzw; XMFLOAT4 color; };
 	struct VRAM { XMFLOAT4X4 camView; XMFLOAT4X4 camProj; XMFLOAT4X4 modelPos; };
 	XTime Time;
 
@@ -161,6 +161,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	Time.Restart();
 
 	//camera data
+	//static const XMVECTORF32 test_eye = { 0.0f, 1.0f, -1.0f, 0.0f };
 	static const XMVECTORF32 eye = { 0.0f, 350.0f, -300.0f, 0.0f };
 	static const XMVECTORF32 at = { 0.0f, 0.0f, 0.0f, 0.0f };
 	static const XMVECTORF32 up = { 0.0f, 1.0f, 0.0f, 0.0f };
@@ -288,7 +289,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	ZeroMemory(&InitData, sizeof(D3D11_SUBRESOURCE_DATA));
 	InitData.pSysMem = model;
 	device->CreateBuffer(&bufferdescription, &InitData, &modelvertbuffer);
-	
+
 	modelindexCount = (unsigned int)triIndices.size();
 	unsigned int * modelIndex;
 	modelIndex = new unsigned int[modelindexCount];
@@ -310,10 +311,10 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	//ground plane//
 	groundindexCount = 6;
 	SIMPLE_VERTEX groundPlane[4]{};
-	groundPlane[0].xyzw = XMFLOAT4(100.0f, 0.0f, 100.0f, 0);
-	groundPlane[1].xyzw = XMFLOAT4(100.0f, 0.0f, -100.0f, 0);
-	groundPlane[2].xyzw = XMFLOAT4(-100.0f, 0.0f, -100.0f, 0);
-	groundPlane[3].xyzw = XMFLOAT4(-100.0f, 0.0f, 100.0f, 0);
+	groundPlane[0].xyzw = XMFLOAT4(1.0f, 0.0f, 1.0f, 0);
+	groundPlane[1].xyzw = XMFLOAT4(1.0f, 0.0f, -1.0f, 0);
+	groundPlane[2].xyzw = XMFLOAT4(-1.0f, 0.0f, -1.0f, 0);
+	groundPlane[3].xyzw = XMFLOAT4(-1.0f, 0.0f, 1.0f, 0);
 	float groundColor[4]{ 1.0f, 1.0f, 0.0f, 0.0f };
 	for (size_t i = 0; i < 4; i++)
 	{
@@ -334,7 +335,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	device->CreateBuffer(&bufferdescription, &InitData, &groundvertbuffer);
 
 	unsigned int groundPlaneindex[6]{ 0,1,3,1,2,3 };
-	
+
 	ZeroMemory(&bufferdescription, sizeof(D3D11_BUFFER_DESC));
 	bufferdescription.Usage = D3D11_USAGE_IMMUTABLE;
 	bufferdescription.ByteWidth = (UINT)(sizeof(unsigned int) * groundindexCount);
@@ -348,35 +349,35 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	//end ground plane//
 
 	//debug//
-	SIMPLE_VERTEX * debugPointList;
-	debugPointList = new SIMPLE_VERTEX[1048]{};
-	float debugJointColor[4]{ 1.0f, 0.0f, 0.0f, 0.0f };
-	
-	ZeroMemory(&bufferdescription, sizeof(D3D11_BUFFER_DESC));
-	bufferdescription.Usage = D3D11_USAGE_IMMUTABLE;
-	bufferdescription.ByteWidth = (UINT)(sizeof(SIMPLE_VERTEX) * 1048);
-	bufferdescription.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	bufferdescription.CPUAccessFlags = NULL;
-	bufferdescription.MiscFlags = NULL;
-	bufferdescription.StructureByteStride = sizeof(SIMPLE_VERTEX);
-	ZeroMemory(&InitData, sizeof(D3D11_SUBRESOURCE_DATA));
-	InitData.pSysMem = debugPointList;
-	device->CreateBuffer(&bufferdescription, &InitData, &debugPointBuffer);
+	//SIMPLE_VERTEX * debugPointList;
+	//debugPointList = new SIMPLE_VERTEX[1048]{};
+	//float debugJointColor[4]{ 1.0f, 0.0f, 0.0f, 0.0f };
+	//
+	//ZeroMemory(&bufferdescription, sizeof(D3D11_BUFFER_DESC));
+	//bufferdescription.Usage = D3D11_USAGE_IMMUTABLE;
+	//bufferdescription.ByteWidth = (UINT)(sizeof(SIMPLE_VERTEX) * 1048);
+	//bufferdescription.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	//bufferdescription.CPUAccessFlags = NULL;
+	//bufferdescription.MiscFlags = NULL;
+	//bufferdescription.StructureByteStride = sizeof(SIMPLE_VERTEX);
+	//ZeroMemory(&InitData, sizeof(D3D11_SUBRESOURCE_DATA));
+	//InitData.pSysMem = debugPointList;
+	//device->CreateBuffer(&bufferdescription, &InitData, &debugPointBuffer);
 
-	SIMPLE_VERTEX * debugLineList;
-	debugLineList = new SIMPLE_VERTEX[2096]{};
-	float debugBoneColor[4]{ 1.0f, 0.0f, 0.0f, 0.25f };
+	//SIMPLE_VERTEX * debugLineList;
+	//debugLineList = new SIMPLE_VERTEX[2096]{};
+	//float debugBoneColor[4]{ 1.0f, 0.0f, 0.0f, 0.25f };
 
-	ZeroMemory(&bufferdescription, sizeof(D3D11_BUFFER_DESC));
-	bufferdescription.Usage = D3D11_USAGE_IMMUTABLE;
-	bufferdescription.ByteWidth = (UINT)(sizeof(SIMPLE_VERTEX) * 2096);
-	bufferdescription.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	bufferdescription.CPUAccessFlags = NULL;
-	bufferdescription.MiscFlags = NULL;
-	bufferdescription.StructureByteStride = sizeof(SIMPLE_VERTEX);
-	ZeroMemory(&InitData, sizeof(D3D11_SUBRESOURCE_DATA));
-	InitData.pSysMem = debugLineList;
-	device->CreateBuffer(&bufferdescription, &InitData, &debugLineBuffer);
+	//ZeroMemory(&bufferdescription, sizeof(D3D11_BUFFER_DESC));
+	//bufferdescription.Usage = D3D11_USAGE_IMMUTABLE;
+	//bufferdescription.ByteWidth = (UINT)(sizeof(SIMPLE_VERTEX) * 2096);
+	//bufferdescription.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	//bufferdescription.CPUAccessFlags = NULL;
+	//bufferdescription.MiscFlags = NULL;
+	//bufferdescription.StructureByteStride = sizeof(SIMPLE_VERTEX);
+	//ZeroMemory(&InitData, sizeof(D3D11_SUBRESOURCE_DATA));
+	//InitData.pSysMem = debugLineList;
+	//device->CreateBuffer(&bufferdescription, &InitData, &debugLineBuffer);
 	//end debug//
 
 #pragma endregion
@@ -404,6 +405,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 bool DEMO_APP::Run()
 {
 	Time.Signal();
+#pragma region mouse update
 	if (imput.mouse_move)
 		if (imput.left_click)
 		{
@@ -416,8 +418,10 @@ bool DEMO_APP::Run()
 			XMStoreFloat4x4(&send_to_ram.camView, XMMatrixTranspose(newcamera));
 		}
 	imput.mouse_move = false;
+#pragma endregion
 
 
+#pragma region keyboard update
 	if (imput.buttons['W'])
 	{
 		XMMATRIX newcamera = XMLoadFloat4x4(&camera);
@@ -446,51 +450,76 @@ bool DEMO_APP::Run()
 	{
 		XMMATRIX newcamera = XMLoadFloat4x4(&camera);
 		XMVECTOR Right{ 5.0f,0.0f,0.0f,0.0f };
-		newcamera.r[3] -= Right *(float) Time.Delta();
+		newcamera.r[3] -= Right *(float)Time.Delta();
 		XMStoreFloat4x4(&camera, newcamera);
 		XMStoreFloat4x4(&send_to_ram.camView, XMMatrixTranspose(newcamera));
 	}
+#pragma endregion
 
 	float color[4]{ 0.0f, 1.0f, 0.0f, 0.0f };
 	context->OMSetRenderTargets(1, &rtv, depthStencilView);
 	context->ClearRenderTargetView(rtv, color);
 	context->ClearDepthStencilView(depthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 	context->RSSetViewports(1, &viewport);
-	context->UpdateSubresource(
-		constBuffer,
-		0,
-		nullptr,
-		&send_to_ram,
-		0,
-		0
-	);
+
+	context->UpdateSubresource(constBuffer, 0, nullptr, &send_to_ram, 0, 0);
+
 	UINT stride = sizeof(SIMPLE_VERTEX);
 	UINT offset = 0;
-	context->IASetVertexBuffers(0, 1, &modelvertbuffer, &stride, &offset);
-	context->IASetIndexBuffer(modelindexbuffer, DXGI_FORMAT_R32_UINT, offset);
+
+#pragma region settings for all draw calls
 	context->VSSetShader(vertexshader, NULL, NULL);
 	context->PSSetShader(pixelshader, NULL, NULL);
-
-
 	context->IASetInputLayout(layout);
 	context->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	context->VSSetConstantBuffers(
-		0,
-		1,
-		&constBuffer
-	);
+	context->VSSetConstantBuffers(0, 1, &constBuffer);
+#pragma endregion
+
+#pragma region draw model
+	context->IASetVertexBuffers(0, 1, &modelvertbuffer, &stride, &offset);
+	context->IASetIndexBuffer(modelindexbuffer, DXGI_FORMAT_R32_UINT, offset);
 	context->RSSetState(wireFrameRasterizerState);
 	context->DrawIndexed(modelindexCount, 0, 0);
+#pragma endregion
 
-
-	//draw ground ground 
+#pragma region draw ground
 	context->IASetVertexBuffers(0, 1, &groundvertbuffer, &stride, &offset);
 	context->IASetIndexBuffer(groundindexbuffer, DXGI_FORMAT_R32_UINT, offset);
 	context->RSSetState(SolidRasterizerState);
 	context->DrawIndexed(groundindexCount, 0, 0);
-	//end ground draw
+#pragma endregion
 
-
+	//debug render
+	//if (!debugPointInit)
+	//{
+	//	D3D11_BUFFER_DESC bufferdescription;
+	//	D3D11_SUBRESOURCE_DATA InitData;
+	//	SIMPLE_VERTEX * debugPointList;
+	//	UINT VertexCount = 1048;
+	//	debugPointList = new SIMPLE_VERTEX[VertexCount]{};
+	//	debugPointList[0].xyzw = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+	//	debugPointList[0].color = XMFLOAT4(1.0f, 0.0f, 0.0f, 0.0f);
+	//	ZeroMemory(&bufferdescription, sizeof(D3D11_BUFFER_DESC));
+	//	bufferdescription.Usage = D3D11_USAGE_IMMUTABLE;
+	//	bufferdescription.ByteWidth = (UINT)(sizeof(SIMPLE_VERTEX) * VertexCount);
+	//	bufferdescription.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	//	bufferdescription.CPUAccessFlags = NULL;
+	//	bufferdescription.MiscFlags = NULL;
+	//	bufferdescription.StructureByteStride = sizeof(SIMPLE_VERTEX);
+	//	ZeroMemory(&InitData, sizeof(D3D11_SUBRESOURCE_DATA));
+	//	InitData.pSysMem = debugPointList;
+	//	device->CreateBuffer(&bufferdescription, &InitData, &debugPointBuffer);
+	//	debugPointInit = true;
+	//}
+	//if (debugPointInit)
+	//{
+	//	UINT VertexCount = 1048;
+	//	context->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_POINTLIST);
+	//	context->IASetVertexBuffers(0, 1, &debugPointBuffer, &stride, &offset);
+	//	context->RSSetState(SolidRasterizerState);
+	//	context->Draw(VertexCount, 0);
+	//}
+	//end debug render
 
 	swapchain->Present(0, 0);
 	return true;
@@ -519,10 +548,44 @@ bool DEMO_APP::ShutDown()
 #pragma region debug functions
 void DEMO_APP::DrawPoints(SIMPLE_VERTEX & ThePoints)
 {
+	D3D11_BUFFER_DESC bufferdescription;
+	D3D11_SUBRESOURCE_DATA InitData;
+
+	SIMPLE_VERTEX * debugPointList;
+	debugPointList = new SIMPLE_VERTEX[1048]{};
+	float debugJointColor[4]{ 1.0f, 0.0f, 0.0f, 0.0f };
+
+	ZeroMemory(&bufferdescription, sizeof(D3D11_BUFFER_DESC));
+	bufferdescription.Usage = D3D11_USAGE_IMMUTABLE;
+	bufferdescription.ByteWidth = (UINT)(sizeof(SIMPLE_VERTEX) * 1048);
+	bufferdescription.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	bufferdescription.CPUAccessFlags = NULL;
+	bufferdescription.MiscFlags = NULL;
+	bufferdescription.StructureByteStride = sizeof(SIMPLE_VERTEX);
+	ZeroMemory(&InitData, sizeof(D3D11_SUBRESOURCE_DATA));
+	InitData.pSysMem = debugPointList;
+	device->CreateBuffer(&bufferdescription, &InitData, &debugPointBuffer);
 }
 
 void DEMO_APP::DrawLines(SIMPLE_VERTEX & TheLines)
 {
+	D3D11_BUFFER_DESC bufferdescription;
+	D3D11_SUBRESOURCE_DATA InitData;
+
+	SIMPLE_VERTEX * debugLineList;
+	debugLineList = new SIMPLE_VERTEX[2096]{};
+	float debugBoneColor[4]{ 1.0f, 0.0f, 0.0f, 0.25f };
+
+	ZeroMemory(&bufferdescription, sizeof(D3D11_BUFFER_DESC));
+	bufferdescription.Usage = D3D11_USAGE_IMMUTABLE;
+	bufferdescription.ByteWidth = (UINT)(sizeof(SIMPLE_VERTEX) * 2096);
+	bufferdescription.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	bufferdescription.CPUAccessFlags = NULL;
+	bufferdescription.MiscFlags = NULL;
+	bufferdescription.StructureByteStride = sizeof(SIMPLE_VERTEX);
+	ZeroMemory(&InitData, sizeof(D3D11_SUBRESOURCE_DATA));
+	InitData.pSysMem = debugLineList;
+	device->CreateBuffer(&bufferdescription, &InitData, &debugLineBuffer);
 }
 #pragma endregion
 
