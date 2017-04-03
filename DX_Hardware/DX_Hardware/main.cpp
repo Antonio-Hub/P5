@@ -30,7 +30,6 @@ using namespace DirectX;
 #define BACKBUFFER_WIDTH	500
 #define BACKBUFFER_HEIGHT	500
 
-
 #include "../FBX/FBX.h"
 
 #pragma region mouse and keyboard imput class
@@ -62,7 +61,6 @@ Imput::~Imput()
 Imput imput;
 #pragma endregion
 
-
 //************************************************************
 //************ SIMPLE WINDOWS APP CLASS **********************
 //************************************************************
@@ -77,8 +75,8 @@ public:
 	DEMO_APP(HINSTANCE hinst, WNDPROC proc);
 	bool Run();
 	bool ShutDown();
-	void DrawPoints(SIMPLE_VERTEX & ThePoints);
-	void DrawLines(SIMPLE_VERTEX & TheLines);
+	void DrawPoints(SIMPLE_VERTEX & ThePoints, int PointCount);
+	void DrawLines(SIMPLE_VERTEX & TheLines, int LineCount);
 private:
 	HINSTANCE						application;
 	WNDPROC							appWndProc;
@@ -115,14 +113,14 @@ private:
 
 	ID3D11VertexShader*     vertexshader = NULL;
 	ID3D11PixelShader*      pixelshader = NULL;
-
-
+	
 	ID3D11Buffer * constBuffer = NULL;
 	VRAM send_to_ram;
 
 	XMFLOAT4X4 camera;
 
-
+	UINT stride = sizeof(SIMPLE_VERTEX);
+	UINT offset = 0;
 };
 
 //************************************************************
@@ -161,8 +159,9 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	Time.Restart();
 
 	//camera data
-	//static const XMVECTORF32 test_eye = { 0.0f, 1.0f, -1.0f, 0.0f };
-	static const XMVECTORF32 eye = { 0.0f, 350.0f, -300.0f, 0.0f };
+	//static const XMVECTORF32 eye = { 0.0f, 1.0f, -1.0f, 0.0f };
+	static const XMVECTORF32 eye = { 0.0f, 35.0f, -30.0f, 0.0f };
+	//static const XMVECTORF32 eye = { 0.0f, 350.0f, -300.0f, 0.0f };
 	static const XMVECTORF32 at = { 0.0f, 0.0f, 0.0f, 0.0f };
 	static const XMVECTORF32 up = { 0.0f, 1.0f, 0.0f, 0.0f };
 	XMStoreFloat4x4(&send_to_ram.camView, XMMatrixTranspose(XMMatrixLookAtLH(eye, at, up)));
@@ -405,6 +404,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 bool DEMO_APP::Run()
 {
 	Time.Signal();
+
 #pragma region mouse update
 	if (imput.mouse_move)
 		if (imput.left_click)
@@ -419,7 +419,6 @@ bool DEMO_APP::Run()
 		}
 	imput.mouse_move = false;
 #pragma endregion
-
 
 #pragma region keyboard update
 	if (imput.buttons['W'])
@@ -456,6 +455,7 @@ bool DEMO_APP::Run()
 	}
 #pragma endregion
 
+#pragma region settings for all draw calls
 	float color[4]{ 0.0f, 1.0f, 0.0f, 0.0f };
 	context->OMSetRenderTargets(1, &rtv, depthStencilView);
 	context->ClearRenderTargetView(rtv, color);
@@ -464,10 +464,6 @@ bool DEMO_APP::Run()
 
 	context->UpdateSubresource(constBuffer, 0, nullptr, &send_to_ram, 0, 0);
 
-	UINT stride = sizeof(SIMPLE_VERTEX);
-	UINT offset = 0;
-
-#pragma region settings for all draw calls
 	context->VSSetShader(vertexshader, NULL, NULL);
 	context->PSSetShader(pixelshader, NULL, NULL);
 	context->IASetInputLayout(layout);
@@ -489,37 +485,25 @@ bool DEMO_APP::Run()
 	context->DrawIndexed(groundindexCount, 0, 0);
 #pragma endregion
 
-	//debug render
-	//if (!debugPointInit)
-	//{
-	//	D3D11_BUFFER_DESC bufferdescription;
-	//	D3D11_SUBRESOURCE_DATA InitData;
-	//	SIMPLE_VERTEX * debugPointList;
-	//	UINT VertexCount = 1048;
-	//	debugPointList = new SIMPLE_VERTEX[VertexCount]{};
-	//	debugPointList[0].xyzw = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
-	//	debugPointList[0].color = XMFLOAT4(1.0f, 0.0f, 0.0f, 0.0f);
-	//	ZeroMemory(&bufferdescription, sizeof(D3D11_BUFFER_DESC));
-	//	bufferdescription.Usage = D3D11_USAGE_IMMUTABLE;
-	//	bufferdescription.ByteWidth = (UINT)(sizeof(SIMPLE_VERTEX) * VertexCount);
-	//	bufferdescription.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	//	bufferdescription.CPUAccessFlags = NULL;
-	//	bufferdescription.MiscFlags = NULL;
-	//	bufferdescription.StructureByteStride = sizeof(SIMPLE_VERTEX);
-	//	ZeroMemory(&InitData, sizeof(D3D11_SUBRESOURCE_DATA));
-	//	InitData.pSysMem = debugPointList;
-	//	device->CreateBuffer(&bufferdescription, &InitData, &debugPointBuffer);
-	//	debugPointInit = true;
-	//}
-	//if (debugPointInit)
-	//{
-	//	UINT VertexCount = 1048;
-	//	context->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_POINTLIST);
-	//	context->IASetVertexBuffers(0, 1, &debugPointBuffer, &stride, &offset);
-	//	context->RSSetState(SolidRasterizerState);
-	//	context->Draw(VertexCount, 0);
-	//}
-	//end debug render
+#pragma region debug point draw
+	SIMPLE_VERTEX v[6]{};
+	v[0].xyzw = XMFLOAT4(1.0f, 0.0f, 1.0f, 0.0f);
+	v[1].xyzw = XMFLOAT4(1.0f, 0.0f, -1.0f, 0.0f);
+	v[2].xyzw = XMFLOAT4(-1.0f, 0.0f, -1.0f, 0.0f);
+	for (size_t i = 0; i < 6; i++)
+		v[i].color = XMFLOAT4(1.0f, 0.0f, 0.0f, 0.0f);
+	DrawPoints(*v,3);
+#pragma endregion
+
+#pragma region debug line draw
+	v[0].xyzw = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+	v[1].xyzw = XMFLOAT4(0.0f, 2.0f, 0.0f, 0.0f);
+	v[2].xyzw = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+	v[3].xyzw = XMFLOAT4(2.0f, 0.0f, 0.0f, 0.0f);
+	v[4].xyzw = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+	v[5].xyzw = XMFLOAT4(0.0f, 0.0f, 2.0f, 0.0f);
+	DrawLines(*v, 6);
+#pragma endregion
 
 	swapchain->Present(0, 0);
 	return true;
@@ -546,47 +530,65 @@ bool DEMO_APP::ShutDown()
 }
 
 #pragma region debug functions
-void DEMO_APP::DrawPoints(SIMPLE_VERTEX & ThePoints)
+
+void DEMO_APP::DrawPoints(SIMPLE_VERTEX & ThePoints, int PointCount)
 {
-	D3D11_BUFFER_DESC bufferdescription;
-	D3D11_SUBRESOURCE_DATA InitData;
-
-	SIMPLE_VERTEX * debugPointList;
-	debugPointList = new SIMPLE_VERTEX[1048]{};
-	float debugJointColor[4]{ 1.0f, 0.0f, 0.0f, 0.0f };
-
-	ZeroMemory(&bufferdescription, sizeof(D3D11_BUFFER_DESC));
-	bufferdescription.Usage = D3D11_USAGE_IMMUTABLE;
-	bufferdescription.ByteWidth = (UINT)(sizeof(SIMPLE_VERTEX) * 1048);
-	bufferdescription.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	bufferdescription.CPUAccessFlags = NULL;
-	bufferdescription.MiscFlags = NULL;
-	bufferdescription.StructureByteStride = sizeof(SIMPLE_VERTEX);
-	ZeroMemory(&InitData, sizeof(D3D11_SUBRESOURCE_DATA));
-	InitData.pSysMem = debugPointList;
-	device->CreateBuffer(&bufferdescription, &InitData, &debugPointBuffer);
+	if (debugPointInit == false)
+	{
+		D3D11_BUFFER_DESC bufferdescription;
+		D3D11_SUBRESOURCE_DATA InitData;
+		UINT VertexCount = PointCount;
+		ZeroMemory(&bufferdescription, sizeof(D3D11_BUFFER_DESC));
+		bufferdescription.Usage = D3D11_USAGE_IMMUTABLE;
+		bufferdescription.ByteWidth = (UINT)(sizeof(SIMPLE_VERTEX) * VertexCount);
+		bufferdescription.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+		bufferdescription.CPUAccessFlags = NULL;
+		bufferdescription.MiscFlags = NULL;
+		bufferdescription.StructureByteStride = sizeof(SIMPLE_VERTEX);
+		ZeroMemory(&InitData, sizeof(D3D11_SUBRESOURCE_DATA));
+		InitData.pSysMem = &ThePoints;
+		device->CreateBuffer(&bufferdescription, &InitData, &debugPointBuffer);
+		debugPointInit = true;
+	}
+	if (debugPointInit == true)
+	{
+		UINT VertexCount = 1048;
+		context->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_POINTLIST);
+		context->IASetVertexBuffers(0, 1, &debugPointBuffer, &stride, &offset);
+		context->RSSetState(SolidRasterizerState);
+		context->Draw(VertexCount, 0);
+	}
 }
 
-void DEMO_APP::DrawLines(SIMPLE_VERTEX & TheLines)
+void DEMO_APP::DrawLines(SIMPLE_VERTEX & TheLines, int LineCount)
 {
-	D3D11_BUFFER_DESC bufferdescription;
-	D3D11_SUBRESOURCE_DATA InitData;
-
-	SIMPLE_VERTEX * debugLineList;
-	debugLineList = new SIMPLE_VERTEX[2096]{};
-	float debugBoneColor[4]{ 1.0f, 0.0f, 0.0f, 0.25f };
-
-	ZeroMemory(&bufferdescription, sizeof(D3D11_BUFFER_DESC));
-	bufferdescription.Usage = D3D11_USAGE_IMMUTABLE;
-	bufferdescription.ByteWidth = (UINT)(sizeof(SIMPLE_VERTEX) * 2096);
-	bufferdescription.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	bufferdescription.CPUAccessFlags = NULL;
-	bufferdescription.MiscFlags = NULL;
-	bufferdescription.StructureByteStride = sizeof(SIMPLE_VERTEX);
-	ZeroMemory(&InitData, sizeof(D3D11_SUBRESOURCE_DATA));
-	InitData.pSysMem = debugLineList;
-	device->CreateBuffer(&bufferdescription, &InitData, &debugLineBuffer);
+	if (debugLineInit == false)
+	{
+		D3D11_BUFFER_DESC bufferdescription;
+		D3D11_SUBRESOURCE_DATA InitData;
+		UINT VertexCount = LineCount;
+		ZeroMemory(&bufferdescription, sizeof(D3D11_BUFFER_DESC));
+		bufferdescription.Usage = D3D11_USAGE_IMMUTABLE;
+		bufferdescription.ByteWidth = (UINT)(sizeof(SIMPLE_VERTEX) * VertexCount);
+		bufferdescription.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+		bufferdescription.CPUAccessFlags = NULL;
+		bufferdescription.MiscFlags = NULL;
+		bufferdescription.StructureByteStride = sizeof(SIMPLE_VERTEX);
+		ZeroMemory(&InitData, sizeof(D3D11_SUBRESOURCE_DATA));
+		InitData.pSysMem = &TheLines;
+		device->CreateBuffer(&bufferdescription, &InitData, &debugLineBuffer);
+		debugLineInit = true;
+	}
+	if (debugLineInit == true)
+	{
+		UINT VertexCount = 1048;
+		context->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_LINELIST);
+		context->IASetVertexBuffers(0, 1, &debugLineBuffer, &stride, &offset);
+		context->RSSetState(SolidRasterizerState);
+		context->Draw(VertexCount, 0);
+	}
 }
+
 #pragma endregion
 
 //************************************************************
