@@ -19,7 +19,6 @@ cbuffer THIS_IS_VRAM : register( b0 )
 
 OUTPUT_VERTEX main( INPUT_VERTEX fromVertexBuffer )
 {
-	
 	float4 pos = float4(fromVertexBuffer.coordinate.xyz,1.0f);
 	pos = mul(pos, modelpos);
 	pos = mul(pos, camView);
@@ -28,10 +27,6 @@ OUTPUT_VERTEX main( INPUT_VERTEX fromVertexBuffer )
 	OUTPUT_VERTEX sendToRasterizer = (OUTPUT_VERTEX)0;
 	sendToRasterizer.projectedCoordinate = pos;
 	sendToRasterizer.colorOut = fromVertexBuffer.color;
-
-	//sendToRasterizer.projectedCoordinate.w = 1;
-	//sendToRasterizer.projectedCoordinate.xyz = fromVertexBuffer.coordinate.xyz;
-	//sendToRasterizer.colorOut = constantColor;
 
 	return sendToRasterizer;
 }

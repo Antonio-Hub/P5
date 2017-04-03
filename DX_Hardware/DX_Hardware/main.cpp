@@ -62,6 +62,7 @@ Imput::~Imput()
 Imput imput;
 #pragma endregion
 
+
 //************************************************************
 //************ SIMPLE WINDOWS APP CLASS **********************
 //************************************************************
@@ -76,6 +77,8 @@ public:
 	DEMO_APP(HINSTANCE hinst, WNDPROC proc);
 	bool Run();
 	bool ShutDown();
+	void DrawPoints(SIMPLE_VERTEX & ThePoints);
+	void DrawLines(SIMPLE_VERTEX & TheLines);
 private:
 	HINSTANCE						application;
 	WNDPROC							appWndProc;
@@ -102,9 +105,13 @@ private:
 	ID3D11Buffer * groundindexbuffer = NULL;
 	unsigned int groundindexCount = 0;
 
-	ID3D11InputLayout * layout = NULL;
-	struct SEND_TO_VRAM { XMFLOAT4 color; XMFLOAT2 offset; XMFLOAT2 padding; };
+	//debug buffer
+	ID3D11Buffer * debugPointBuffer = nullptr;
+	ID3D11Buffer * debugLineBuffer = nullptr;
+	bool debugPointInit = false;
+	bool debugLineInit = false;
 
+	ID3D11InputLayout * layout = NULL;
 
 	ID3D11VertexShader*     vertexshader = NULL;
 	ID3D11PixelShader*      pixelshader = NULL;
@@ -252,6 +259,8 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 #pragma endregion
 
 #pragma region model buffers
+	D3D11_BUFFER_DESC bufferdescription;
+	D3D11_SUBRESOURCE_DATA InitData;
 
 	//teddy//
 	SIMPLE_VERTEX * model;
@@ -269,18 +278,16 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 		model[i].color.w = modelColor[3];
 	}
 
-	D3D11_BUFFER_DESC vertbufferdescription;
-	ZeroMemory(&vertbufferdescription, sizeof(D3D11_BUFFER_DESC));
-	vertbufferdescription.Usage = D3D11_USAGE_IMMUTABLE;
-	vertbufferdescription.ByteWidth = (UINT)(sizeof(SIMPLE_VERTEX) * verts.size());
-	vertbufferdescription.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	vertbufferdescription.CPUAccessFlags = NULL;
-	vertbufferdescription.MiscFlags = NULL;
-	vertbufferdescription.StructureByteStride = sizeof(SIMPLE_VERTEX);
-	D3D11_SUBRESOURCE_DATA vertInitData;
-	ZeroMemory(&vertInitData, sizeof(vertInitData));
-	vertInitData.pSysMem = model;
-	device->CreateBuffer(&vertbufferdescription, &vertInitData, &modelvertbuffer);
+	ZeroMemory(&bufferdescription, sizeof(D3D11_BUFFER_DESC));
+	bufferdescription.Usage = D3D11_USAGE_IMMUTABLE;
+	bufferdescription.ByteWidth = (UINT)(sizeof(SIMPLE_VERTEX) * verts.size());
+	bufferdescription.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	bufferdescription.CPUAccessFlags = NULL;
+	bufferdescription.MiscFlags = NULL;
+	bufferdescription.StructureByteStride = sizeof(SIMPLE_VERTEX);
+	ZeroMemory(&InitData, sizeof(D3D11_SUBRESOURCE_DATA));
+	InitData.pSysMem = model;
+	device->CreateBuffer(&bufferdescription, &InitData, &modelvertbuffer);
 	
 	modelindexCount = (unsigned int)triIndices.size();
 	unsigned int * modelIndex;
@@ -288,18 +295,16 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	for (size_t i = 0; i < modelindexCount; i++)
 		modelIndex[i] = triIndices[i];
 
-	D3D11_BUFFER_DESC indexbufferdescription;
-	ZeroMemory(&indexbufferdescription, sizeof(D3D11_BUFFER_DESC));
-	indexbufferdescription.Usage = D3D11_USAGE_IMMUTABLE;
-	indexbufferdescription.ByteWidth = (UINT)(sizeof(unsigned int) * triIndices.size());
-	indexbufferdescription.BindFlags = D3D11_BIND_INDEX_BUFFER;
-	indexbufferdescription.CPUAccessFlags = NULL;
-	indexbufferdescription.MiscFlags = NULL;
-	indexbufferdescription.StructureByteStride = sizeof(unsigned int);
-	D3D11_SUBRESOURCE_DATA indexInitData;
-	ZeroMemory(&indexInitData, sizeof(indexInitData));
-	indexInitData.pSysMem = modelIndex;
-	device->CreateBuffer(&indexbufferdescription, &indexInitData, &modelindexbuffer);
+	ZeroMemory(&bufferdescription, sizeof(D3D11_BUFFER_DESC));
+	bufferdescription.Usage = D3D11_USAGE_IMMUTABLE;
+	bufferdescription.ByteWidth = (UINT)(sizeof(unsigned int) * triIndices.size());
+	bufferdescription.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	bufferdescription.CPUAccessFlags = NULL;
+	bufferdescription.MiscFlags = NULL;
+	bufferdescription.StructureByteStride = sizeof(unsigned int);
+	ZeroMemory(&InitData, sizeof(D3D11_SUBRESOURCE_DATA));
+	InitData.pSysMem = modelIndex;
+	device->CreateBuffer(&bufferdescription, &InitData, &modelindexbuffer);
 	//end teddy//
 
 	//ground plane//
@@ -317,30 +322,63 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 		groundPlane[i].color.z = groundColor[2];
 		groundPlane[i].color.w = groundColor[3];
 	}
-	ZeroMemory(&vertbufferdescription, sizeof(D3D11_BUFFER_DESC));
-	vertbufferdescription.Usage = D3D11_USAGE_IMMUTABLE;
-	vertbufferdescription.ByteWidth = (UINT)(sizeof(SIMPLE_VERTEX) * groundindexCount);
-	vertbufferdescription.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	vertbufferdescription.CPUAccessFlags = NULL;
-	vertbufferdescription.MiscFlags = NULL;
-	vertbufferdescription.StructureByteStride = sizeof(SIMPLE_VERTEX);
-	ZeroMemory(&vertInitData, sizeof(vertInitData));
-	vertInitData.pSysMem = groundPlane;
-	device->CreateBuffer(&vertbufferdescription, &vertInitData, &groundvertbuffer);
+	ZeroMemory(&bufferdescription, sizeof(D3D11_BUFFER_DESC));
+	bufferdescription.Usage = D3D11_USAGE_IMMUTABLE;
+	bufferdescription.ByteWidth = (UINT)(sizeof(SIMPLE_VERTEX) * groundindexCount);
+	bufferdescription.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	bufferdescription.CPUAccessFlags = NULL;
+	bufferdescription.MiscFlags = NULL;
+	bufferdescription.StructureByteStride = sizeof(SIMPLE_VERTEX);
+	ZeroMemory(&InitData, sizeof(D3D11_SUBRESOURCE_DATA));
+	InitData.pSysMem = groundPlane;
+	device->CreateBuffer(&bufferdescription, &InitData, &groundvertbuffer);
 
 	unsigned int groundPlaneindex[6]{ 0,1,3,1,2,3 };
 	
-	ZeroMemory(&indexbufferdescription, sizeof(D3D11_BUFFER_DESC));
-	indexbufferdescription.Usage = D3D11_USAGE_IMMUTABLE;
-	indexbufferdescription.ByteWidth = (UINT)(sizeof(unsigned int) * groundindexCount);
-	indexbufferdescription.BindFlags = D3D11_BIND_INDEX_BUFFER;
-	indexbufferdescription.CPUAccessFlags = NULL;
-	indexbufferdescription.MiscFlags = NULL;
-	indexbufferdescription.StructureByteStride = sizeof(unsigned int);
-	ZeroMemory(&indexInitData, sizeof(indexInitData));
-	indexInitData.pSysMem = groundPlaneindex;
-	device->CreateBuffer(&indexbufferdescription, &indexInitData, &groundindexbuffer);
+	ZeroMemory(&bufferdescription, sizeof(D3D11_BUFFER_DESC));
+	bufferdescription.Usage = D3D11_USAGE_IMMUTABLE;
+	bufferdescription.ByteWidth = (UINT)(sizeof(unsigned int) * groundindexCount);
+	bufferdescription.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	bufferdescription.CPUAccessFlags = NULL;
+	bufferdescription.MiscFlags = NULL;
+	bufferdescription.StructureByteStride = sizeof(unsigned int);
+	ZeroMemory(&InitData, sizeof(D3D11_SUBRESOURCE_DATA));
+	InitData.pSysMem = groundPlaneindex;
+	device->CreateBuffer(&bufferdescription, &InitData, &groundindexbuffer);
 	//end ground plane//
+
+	//debug//
+	SIMPLE_VERTEX * debugPointList;
+	debugPointList = new SIMPLE_VERTEX[1048]{};
+	float debugJointColor[4]{ 1.0f, 0.0f, 0.0f, 0.0f };
+	
+	ZeroMemory(&bufferdescription, sizeof(D3D11_BUFFER_DESC));
+	bufferdescription.Usage = D3D11_USAGE_IMMUTABLE;
+	bufferdescription.ByteWidth = (UINT)(sizeof(SIMPLE_VERTEX) * 1048);
+	bufferdescription.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	bufferdescription.CPUAccessFlags = NULL;
+	bufferdescription.MiscFlags = NULL;
+	bufferdescription.StructureByteStride = sizeof(SIMPLE_VERTEX);
+	ZeroMemory(&InitData, sizeof(D3D11_SUBRESOURCE_DATA));
+	InitData.pSysMem = debugPointList;
+	device->CreateBuffer(&bufferdescription, &InitData, &debugPointBuffer);
+
+	SIMPLE_VERTEX * debugLineList;
+	debugLineList = new SIMPLE_VERTEX[2096]{};
+	float debugBoneColor[4]{ 1.0f, 0.0f, 0.0f, 0.25f };
+
+	ZeroMemory(&bufferdescription, sizeof(D3D11_BUFFER_DESC));
+	bufferdescription.Usage = D3D11_USAGE_IMMUTABLE;
+	bufferdescription.ByteWidth = (UINT)(sizeof(SIMPLE_VERTEX) * 2096);
+	bufferdescription.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	bufferdescription.CPUAccessFlags = NULL;
+	bufferdescription.MiscFlags = NULL;
+	bufferdescription.StructureByteStride = sizeof(SIMPLE_VERTEX);
+	ZeroMemory(&InitData, sizeof(D3D11_SUBRESOURCE_DATA));
+	InitData.pSysMem = debugLineList;
+	device->CreateBuffer(&bufferdescription, &InitData, &debugLineBuffer);
+	//end debug//
+
 #pragma endregion
 
 	device->CreateVertexShader(Trivial_VS, sizeof(Trivial_VS), NULL, &vertexshader);
@@ -477,6 +515,16 @@ bool DEMO_APP::ShutDown()
 	UnregisterClass(L"DirectXApplication", application);
 	return true;
 }
+
+#pragma region debug functions
+void DEMO_APP::DrawPoints(SIMPLE_VERTEX & ThePoints)
+{
+}
+
+void DEMO_APP::DrawLines(SIMPLE_VERTEX & TheLines)
+{
+}
+#pragma endregion
 
 //************************************************************
 //************ WINDOWS RELATED *******************************
