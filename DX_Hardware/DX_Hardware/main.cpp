@@ -27,8 +27,8 @@ using namespace DirectX;
 #include "Trivial_PS.csh"
 #include "Trivial_VS.csh"
 
-#define BACKBUFFER_WIDTH	500
-#define BACKBUFFER_HEIGHT	500
+#define BACKBUFFER_WIDTH	1500
+#define BACKBUFFER_HEIGHT	1000
 
 #include "../FBX/FBX.h"
 
@@ -121,6 +121,9 @@ private:
 
 	UINT stride = sizeof(SIMPLE_VERTEX);
 	UINT offset = 0;
+
+	vector<Bone> bind_pose;
+
 };
 
 //************************************************************
@@ -160,8 +163,8 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 
 	//camera data
 	//static const XMVECTORF32 eye = { 0.0f, 1.0f, -1.0f, 0.0f };
-	static const XMVECTORF32 eye = { 0.0f, 35.0f, -30.0f, 0.0f };
-	//static const XMVECTORF32 eye = { 0.0f, 350.0f, -300.0f, 0.0f };
+	//static const XMVECTORF32 eye = { 0.0f, 35.0f, -30.0f, 0.0f };
+	static const XMVECTORF32 eye = { 0.0f, 350.0f, -300.0f, 0.0f };
 	static const XMVECTORF32 at = { 0.0f, 0.0f, 0.0f, 0.0f };
 	static const XMVECTORF32 up = { 0.0f, 1.0f, 0.0f, 0.0f };
 	XMStoreFloat4x4(&send_to_ram.camView, XMMatrixTranspose(XMMatrixLookAtLH(eye, at, up)));
@@ -254,7 +257,6 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	vector<unsigned int> triIndices;
 	vector<BlendingVertex> verts;
 	Skeleton * mSkeleton = new Skeleton();
-	vector<Bone> bind_pose;
 	functionality(mesh, bone, animation, triCount, triIndices, verts, mSkeleton, bind_pose);
 #pragma endregion
 
@@ -265,7 +267,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	//teddy//
 	SIMPLE_VERTEX * model;
 	model = new SIMPLE_VERTEX[verts.size()];
-	float modelColor[4]{ 0.0f, 0.0f, 1.0f, 0.0f };
+	float modelColor[4]{ 1.0f, 1.0f, 1.0f, 0.0f };
 	for (size_t i = 0; i < verts.size(); i++)
 	{
 		model[i].xyzw.x = verts[i].mPosition.x;
@@ -347,38 +349,6 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	device->CreateBuffer(&bufferdescription, &InitData, &groundindexbuffer);
 	//end ground plane//
 
-	//debug//
-	//SIMPLE_VERTEX * debugPointList;
-	//debugPointList = new SIMPLE_VERTEX[1048]{};
-	//float debugJointColor[4]{ 1.0f, 0.0f, 0.0f, 0.0f };
-	//
-	//ZeroMemory(&bufferdescription, sizeof(D3D11_BUFFER_DESC));
-	//bufferdescription.Usage = D3D11_USAGE_IMMUTABLE;
-	//bufferdescription.ByteWidth = (UINT)(sizeof(SIMPLE_VERTEX) * 1048);
-	//bufferdescription.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	//bufferdescription.CPUAccessFlags = NULL;
-	//bufferdescription.MiscFlags = NULL;
-	//bufferdescription.StructureByteStride = sizeof(SIMPLE_VERTEX);
-	//ZeroMemory(&InitData, sizeof(D3D11_SUBRESOURCE_DATA));
-	//InitData.pSysMem = debugPointList;
-	//device->CreateBuffer(&bufferdescription, &InitData, &debugPointBuffer);
-
-	//SIMPLE_VERTEX * debugLineList;
-	//debugLineList = new SIMPLE_VERTEX[2096]{};
-	//float debugBoneColor[4]{ 1.0f, 0.0f, 0.0f, 0.25f };
-
-	//ZeroMemory(&bufferdescription, sizeof(D3D11_BUFFER_DESC));
-	//bufferdescription.Usage = D3D11_USAGE_IMMUTABLE;
-	//bufferdescription.ByteWidth = (UINT)(sizeof(SIMPLE_VERTEX) * 2096);
-	//bufferdescription.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	//bufferdescription.CPUAccessFlags = NULL;
-	//bufferdescription.MiscFlags = NULL;
-	//bufferdescription.StructureByteStride = sizeof(SIMPLE_VERTEX);
-	//ZeroMemory(&InitData, sizeof(D3D11_SUBRESOURCE_DATA));
-	//InitData.pSysMem = debugLineList;
-	//device->CreateBuffer(&bufferdescription, &InitData, &debugLineBuffer);
-	//end debug//
-
 #pragma endregion
 
 	device->CreateVertexShader(Trivial_VS, sizeof(Trivial_VS), NULL, &vertexshader);
@@ -411,7 +381,7 @@ bool DEMO_APP::Run()
 		{
 			XMMATRIX newcamera = XMLoadFloat4x4(&camera);
 			XMVECTOR pos = newcamera.r[3];
-			newcamera.r[3] = XMLoadFloat4(&XMFLOAT4(0, 0, 0, 1));
+			newcamera.r[3] = XMLoadFloat4(&XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f));
 			newcamera = XMMatrixRotationX(imput.diffy * (float)Time.Delta()) * newcamera * XMMatrixRotationY(imput.diffx * (float)Time.Delta());
 			newcamera.r[3] = pos;
 			XMStoreFloat4x4(&camera, newcamera);
@@ -424,7 +394,7 @@ bool DEMO_APP::Run()
 	if (imput.buttons['W'])
 	{
 		XMMATRIX newcamera = XMLoadFloat4x4(&camera);
-		XMVECTOR forward{ 0.0f,0.0f,5.0f,0.0f };
+		XMVECTOR forward{ 0.0f,0.0f,50.0f,0.0f };
 		newcamera.r[3] -= forward * (float)Time.Delta();
 		XMStoreFloat4x4(&camera, newcamera);
 		XMStoreFloat4x4(&send_to_ram.camView, XMMatrixTranspose(newcamera));
@@ -432,7 +402,7 @@ bool DEMO_APP::Run()
 	if (imput.buttons['S'])
 	{
 		XMMATRIX newcamera = XMLoadFloat4x4(&camera);
-		XMVECTOR forward{ 0.0f,0.0f,5.0f,0.0f };
+		XMVECTOR forward{ 0.0f,0.0f,50.0f,0.0f };
 		newcamera.r[3] += forward * (float)Time.Delta();
 		XMStoreFloat4x4(&camera, newcamera);
 		XMStoreFloat4x4(&send_to_ram.camView, XMMatrixTranspose(newcamera));
@@ -440,7 +410,7 @@ bool DEMO_APP::Run()
 	if (imput.buttons['A'])
 	{
 		XMMATRIX newcamera = XMLoadFloat4x4(&camera);
-		XMVECTOR Right{ 5.0f,0.0f,0.0f,0.0f };
+		XMVECTOR Right{ 50.0f,0.0f,0.0f,0.0f };
 		newcamera.r[3] += Right * (float)Time.Delta();
 		XMStoreFloat4x4(&camera, newcamera);
 		XMStoreFloat4x4(&send_to_ram.camView, XMMatrixTranspose(newcamera));
@@ -448,7 +418,7 @@ bool DEMO_APP::Run()
 	if (imput.buttons['D'])
 	{
 		XMMATRIX newcamera = XMLoadFloat4x4(&camera);
-		XMVECTOR Right{ 5.0f,0.0f,0.0f,0.0f };
+		XMVECTOR Right{ 50.0f,0.0f,0.0f,0.0f };
 		newcamera.r[3] -= Right *(float)Time.Delta();
 		XMStoreFloat4x4(&camera, newcamera);
 		XMStoreFloat4x4(&send_to_ram.camView, XMMatrixTranspose(newcamera));
@@ -485,24 +455,115 @@ bool DEMO_APP::Run()
 	context->DrawIndexed(groundindexCount, 0, 0);
 #pragma endregion
 
-#pragma region debug point draw
-	SIMPLE_VERTEX v[6]{};
-	v[0].xyzw = XMFLOAT4(1.0f, 0.0f, 1.0f, 0.0f);
-	v[1].xyzw = XMFLOAT4(1.0f, 0.0f, -1.0f, 0.0f);
-	v[2].xyzw = XMFLOAT4(-1.0f, 0.0f, -1.0f, 0.0f);
-	for (size_t i = 0; i < 6; i++)
-		v[i].color = XMFLOAT4(1.0f, 0.0f, 0.0f, 0.0f);
-	DrawPoints(*v,3);
+#pragma region debug joints
+	static SIMPLE_VERTEX * jointBindPose = new SIMPLE_VERTEX[bind_pose.size()];
+	for (size_t i = 0; i < bind_pose.size(); i++)
+	{
+		jointBindPose[i].xyzw = XMFLOAT4(-bind_pose[i].matrix._41, -bind_pose[i].matrix._42, -bind_pose[i].matrix._43, -bind_pose[i].matrix._44);
+		jointBindPose[i].color = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+	}
+	DrawPoints(jointBindPose[0], (int)bind_pose.size());
 #pragma endregion
 
-#pragma region debug line draw
-	v[0].xyzw = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
-	v[1].xyzw = XMFLOAT4(0.0f, 2.0f, 0.0f, 0.0f);
-	v[2].xyzw = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
-	v[3].xyzw = XMFLOAT4(2.0f, 0.0f, 0.0f, 0.0f);
-	v[4].xyzw = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
-	v[5].xyzw = XMFLOAT4(0.0f, 0.0f, 2.0f, 0.0f);
-	DrawLines(*v, 6);
+#pragma region debug bones
+
+	static SIMPLE_VERTEX * boneBindPose = new SIMPLE_VERTEX[256];
+	//one
+	boneBindPose[0].xyzw = XMFLOAT4(-bind_pose[1].matrix._41, -bind_pose[1].matrix._42, -bind_pose[1].matrix._43, -bind_pose[1].matrix._44);
+	boneBindPose[1].xyzw = XMFLOAT4(-bind_pose[2].matrix._41, -bind_pose[2].matrix._42, -bind_pose[2].matrix._43, -bind_pose[2].matrix._44);
+	//two
+	boneBindPose[2].xyzw = XMFLOAT4(-bind_pose[2].matrix._41, -bind_pose[2].matrix._42, -bind_pose[2].matrix._43, -bind_pose[2].matrix._44);
+	boneBindPose[3].xyzw = XMFLOAT4(-bind_pose[3].matrix._41, -bind_pose[3].matrix._42, -bind_pose[3].matrix._43, -bind_pose[3].matrix._44);
+	//three
+	boneBindPose[4].xyzw = XMFLOAT4(-bind_pose[3].matrix._41, -bind_pose[3].matrix._42, -bind_pose[3].matrix._43, -bind_pose[3].matrix._44);
+	boneBindPose[5].xyzw = XMFLOAT4(-bind_pose[4].matrix._41, -bind_pose[4].matrix._42, -bind_pose[4].matrix._43, -bind_pose[4].matrix._44);
+	//four
+	boneBindPose[6].xyzw = XMFLOAT4(-bind_pose[4].matrix._41, -bind_pose[4].matrix._42, -bind_pose[4].matrix._43, -bind_pose[4].matrix._44);
+	boneBindPose[7].xyzw = XMFLOAT4(-bind_pose[5].matrix._41, -bind_pose[5].matrix._42, -bind_pose[5].matrix._43, -bind_pose[5].matrix._44);
+	//five
+	boneBindPose[8].xyzw = XMFLOAT4(-bind_pose[3].matrix._41, -bind_pose[3].matrix._42, -bind_pose[3].matrix._43, -bind_pose[3].matrix._44);
+	boneBindPose[9].xyzw = XMFLOAT4(-bind_pose[6].matrix._41, -bind_pose[6].matrix._42, -bind_pose[6].matrix._43, -bind_pose[6].matrix._44);
+	//six
+	boneBindPose[10].xyzw = XMFLOAT4(-bind_pose[6].matrix._41, -bind_pose[6].matrix._42, -bind_pose[6].matrix._43, -bind_pose[6].matrix._44);
+	boneBindPose[11].xyzw = XMFLOAT4(-bind_pose[7].matrix._41, -bind_pose[7].matrix._42, -bind_pose[7].matrix._43, -bind_pose[7].matrix._44);
+	//sevin
+	boneBindPose[12].xyzw = XMFLOAT4(-bind_pose[7].matrix._41, -bind_pose[7].matrix._42, -bind_pose[7].matrix._43, -bind_pose[7].matrix._44);
+	boneBindPose[13].xyzw = XMFLOAT4(-bind_pose[8].matrix._41, -bind_pose[8].matrix._42, -bind_pose[8].matrix._43, -bind_pose[8].matrix._44);
+	//eight
+	boneBindPose[14].xyzw = XMFLOAT4(-bind_pose[8].matrix._41, -bind_pose[8].matrix._42, -bind_pose[8].matrix._43, -bind_pose[8].matrix._44);
+	boneBindPose[15].xyzw = XMFLOAT4(-bind_pose[9].matrix._41, -bind_pose[9].matrix._42, -bind_pose[9].matrix._43, -bind_pose[9].matrix._44);
+	//nine
+	boneBindPose[16].xyzw = XMFLOAT4(-bind_pose[9].matrix._41, -bind_pose[9].matrix._42, -bind_pose[9].matrix._43, -bind_pose[9].matrix._44);
+	boneBindPose[17].xyzw = XMFLOAT4(-bind_pose[10].matrix._41, -bind_pose[10].matrix._42, -bind_pose[10].matrix._43, -bind_pose[10].matrix._44);
+	//ten
+	boneBindPose[18].xyzw = XMFLOAT4(-bind_pose[10].matrix._41, -bind_pose[10].matrix._42, -bind_pose[10].matrix._43, -bind_pose[10].matrix._44);
+	boneBindPose[19].xyzw = XMFLOAT4(-bind_pose[11].matrix._41, -bind_pose[11].matrix._42, -bind_pose[11].matrix._43, -bind_pose[11].matrix._44);
+	//eleven
+	boneBindPose[20].xyzw = XMFLOAT4(-bind_pose[10].matrix._41, -bind_pose[10].matrix._42, -bind_pose[10].matrix._43, -bind_pose[10].matrix._44);
+	boneBindPose[21].xyzw = XMFLOAT4(-bind_pose[12].matrix._41, -bind_pose[12].matrix._42, -bind_pose[12].matrix._43, -bind_pose[12].matrix._44);
+	//twelve
+	boneBindPose[22].xyzw = XMFLOAT4(-bind_pose[3].matrix._41, -bind_pose[3].matrix._42, -bind_pose[3].matrix._43, -bind_pose[3].matrix._44);
+	boneBindPose[23].xyzw = XMFLOAT4(-bind_pose[13].matrix._41, -bind_pose[13].matrix._42, -bind_pose[13].matrix._43, -bind_pose[13].matrix._44);
+	//thirteen
+	boneBindPose[24].xyzw = XMFLOAT4(-bind_pose[13].matrix._41, -bind_pose[13].matrix._42, -bind_pose[13].matrix._43, -bind_pose[13].matrix._44);
+	boneBindPose[25].xyzw = XMFLOAT4(-bind_pose[14].matrix._41, -bind_pose[14].matrix._42, -bind_pose[14].matrix._43, -bind_pose[14].matrix._44);
+	//fourteen
+	boneBindPose[26].xyzw = XMFLOAT4(-bind_pose[14].matrix._41, -bind_pose[14].matrix._42, -bind_pose[14].matrix._43, -bind_pose[14].matrix._44);
+	boneBindPose[27].xyzw = XMFLOAT4(-bind_pose[15].matrix._41, -bind_pose[15].matrix._42, -bind_pose[15].matrix._43, -bind_pose[15].matrix._44);
+	//fifteen
+	boneBindPose[28].xyzw = XMFLOAT4(-bind_pose[15].matrix._41, -bind_pose[15].matrix._42, -bind_pose[15].matrix._43, -bind_pose[15].matrix._44);
+	boneBindPose[29].xyzw = XMFLOAT4(-bind_pose[16].matrix._41, -bind_pose[16].matrix._42, -bind_pose[16].matrix._43, -bind_pose[16].matrix._44);
+	//sixteen
+	boneBindPose[30].xyzw = XMFLOAT4(-bind_pose[16].matrix._41, -bind_pose[16].matrix._42, -bind_pose[16].matrix._43, -bind_pose[16].matrix._44);
+	boneBindPose[31].xyzw = XMFLOAT4(-bind_pose[17].matrix._41, -bind_pose[17].matrix._42, -bind_pose[17].matrix._43, -bind_pose[17].matrix._44);
+	//sevinteen
+	boneBindPose[32].xyzw = XMFLOAT4(-bind_pose[17].matrix._41, -bind_pose[17].matrix._42, -bind_pose[17].matrix._43, -bind_pose[17].matrix._44);
+	boneBindPose[33].xyzw = XMFLOAT4(-bind_pose[18].matrix._41, -bind_pose[18].matrix._42, -bind_pose[18].matrix._43, -bind_pose[18].matrix._44);
+	//eighteen
+	boneBindPose[34].xyzw = XMFLOAT4(-bind_pose[17].matrix._41, -bind_pose[17].matrix._42, -bind_pose[17].matrix._43, -bind_pose[17].matrix._44);
+	boneBindPose[35].xyzw = XMFLOAT4(-bind_pose[19].matrix._41, -bind_pose[19].matrix._42, -bind_pose[19].matrix._43, -bind_pose[19].matrix._44);
+	//nighnteen
+	boneBindPose[36].xyzw = XMFLOAT4(-bind_pose[4].matrix._41, -bind_pose[4].matrix._42, -bind_pose[4].matrix._43, -bind_pose[4].matrix._44);
+	boneBindPose[37].xyzw = XMFLOAT4(-bind_pose[20].matrix._41, -bind_pose[20].matrix._42, -bind_pose[20].matrix._43, -bind_pose[20].matrix._44);
+	//twenty
+	boneBindPose[38].xyzw = XMFLOAT4(-bind_pose[20].matrix._41, -bind_pose[20].matrix._42, -bind_pose[20].matrix._43, -bind_pose[20].matrix._44);
+	boneBindPose[39].xyzw = XMFLOAT4(-bind_pose[21].matrix._41, -bind_pose[21].matrix._42, -bind_pose[21].matrix._43, -bind_pose[21].matrix._44);
+	//twenty one
+	boneBindPose[40].xyzw = XMFLOAT4(-bind_pose[21].matrix._41, -bind_pose[21].matrix._42, -bind_pose[21].matrix._43, -bind_pose[21].matrix._44);
+	boneBindPose[41].xyzw = XMFLOAT4(-bind_pose[22].matrix._41, -bind_pose[22].matrix._42, -bind_pose[22].matrix._43, -bind_pose[22].matrix._44);
+	//twenty two
+	boneBindPose[42].xyzw = XMFLOAT4(-bind_pose[22].matrix._41, -bind_pose[22].matrix._42, -bind_pose[22].matrix._43, -bind_pose[22].matrix._44);
+	boneBindPose[43].xyzw = XMFLOAT4(-bind_pose[23].matrix._41, -bind_pose[23].matrix._42, -bind_pose[23].matrix._43, -bind_pose[23].matrix._44);
+	//twenty three
+	boneBindPose[44].xyzw = XMFLOAT4(-bind_pose[23].matrix._41, -bind_pose[23].matrix._42, -bind_pose[23].matrix._43, -bind_pose[23].matrix._44);
+	boneBindPose[45].xyzw = XMFLOAT4(-bind_pose[24].matrix._41, -bind_pose[24].matrix._42, -bind_pose[24].matrix._43, -bind_pose[24].matrix._44);
+	//twenty four
+	boneBindPose[46].xyzw = XMFLOAT4(-bind_pose[0].matrix._41, -bind_pose[0].matrix._42, -bind_pose[0].matrix._43, -bind_pose[0].matrix._44);
+	boneBindPose[47].xyzw = XMFLOAT4(-bind_pose[25].matrix._41, -bind_pose[25].matrix._42, -bind_pose[25].matrix._43, -bind_pose[25].matrix._44);
+	//twenty five
+	boneBindPose[48].xyzw = XMFLOAT4(-bind_pose[25].matrix._41, -bind_pose[25].matrix._42, -bind_pose[25].matrix._43, -bind_pose[25].matrix._44);
+	boneBindPose[49].xyzw = XMFLOAT4(-bind_pose[26].matrix._41, -bind_pose[26].matrix._42, -bind_pose[26].matrix._43, -bind_pose[26].matrix._44);
+	//twenty six
+	boneBindPose[50].xyzw = XMFLOAT4(-bind_pose[26].matrix._41, -bind_pose[26].matrix._42, -bind_pose[26].matrix._43, -bind_pose[26].matrix._44);
+	boneBindPose[51].xyzw = XMFLOAT4(-bind_pose[27].matrix._41, -bind_pose[27].matrix._42, -bind_pose[27].matrix._43, -bind_pose[27].matrix._44);
+	//twenty sevin
+	boneBindPose[52].xyzw = XMFLOAT4(-bind_pose[27].matrix._41, -bind_pose[27].matrix._42, -bind_pose[27].matrix._43, -bind_pose[27].matrix._44);
+	boneBindPose[53].xyzw = XMFLOAT4(-bind_pose[28].matrix._41, -bind_pose[28].matrix._42, -bind_pose[28].matrix._43, -bind_pose[28].matrix._44);
+	//twenty eight
+	boneBindPose[54].xyzw = XMFLOAT4(-bind_pose[0].matrix._41, -bind_pose[0].matrix._42, -bind_pose[0].matrix._43, -bind_pose[0].matrix._44);
+	boneBindPose[55].xyzw = XMFLOAT4(-bind_pose[29].matrix._41, -bind_pose[29].matrix._42, -bind_pose[29].matrix._43, -bind_pose[29].matrix._44);
+	//twenty nine
+	boneBindPose[56].xyzw = XMFLOAT4(-bind_pose[29].matrix._41, -bind_pose[29].matrix._42, -bind_pose[29].matrix._43, -bind_pose[29].matrix._44);
+	boneBindPose[57].xyzw = XMFLOAT4(-bind_pose[30].matrix._41, -bind_pose[30].matrix._42, -bind_pose[30].matrix._43, -bind_pose[30].matrix._44);
+	//thirty
+	boneBindPose[58].xyzw = XMFLOAT4(-bind_pose[30].matrix._41, -bind_pose[30].matrix._42, -bind_pose[30].matrix._43, -bind_pose[30].matrix._44);
+	boneBindPose[59].xyzw = XMFLOAT4(-bind_pose[31].matrix._41, -bind_pose[31].matrix._42, -bind_pose[31].matrix._43, -bind_pose[31].matrix._44);
+	//thirty one
+	boneBindPose[60].xyzw = XMFLOAT4(-bind_pose[31].matrix._41, -bind_pose[31].matrix._42, -bind_pose[31].matrix._43, -bind_pose[31].matrix._44);
+	boneBindPose[61].xyzw = XMFLOAT4(-bind_pose[32].matrix._41, -bind_pose[32].matrix._42, -bind_pose[32].matrix._43, -bind_pose[32].matrix._44);
+
+	DrawLines(boneBindPose[0], (int)62);
+
 #pragma endregion
 
 	swapchain->Present(0, 0);
