@@ -1,6 +1,7 @@
 ﻿  stdafx.cpp
   dllmain.cpp
   FBX.cpp
+  LINK : C:\Users\Antonio-ROG\Desktop\P5\DX_Hardware\x64\Debug\FBX.dll not found or not built by the last incremental link; performing full link
      Creating library C:\Users\Antonio-ROG\Desktop\P5\DX_Hardware\x64\Debug\FBX.lib and object C:\Users\Antonio-ROG\Desktop\P5\DX_Hardware\x64\Debug\FBX.exp
   FBX.vcxproj -> C:\Users\Antonio-ROG\Desktop\P5\DX_Hardware\x64\Debug\FBX.dll
   FBX.vcxproj -> C:\Users\Antonio-ROG\Desktop\P5\DX_Hardware\x64\Debug\FBX.pdb (Full PDB)

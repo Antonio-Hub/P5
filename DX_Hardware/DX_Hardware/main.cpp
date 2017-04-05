@@ -27,8 +27,8 @@ using namespace DirectX;
 #include "Trivial_PS.csh"
 #include "Trivial_VS.csh"
 
-#define BACKBUFFER_WIDTH	1500
-#define BACKBUFFER_HEIGHT	1000
+#define BACKBUFFER_WIDTH	500
+#define BACKBUFFER_HEIGHT	500
 
 #include "../FBX/FBX.h"
 
@@ -48,6 +48,8 @@ public:
 	bool mouse_move = false;
 	bool left_click = false;
 	bool has_left_window = false;
+	bool bLeft = false;
+	bool bRight = false;
 };
 
 Imput::Imput()
@@ -93,10 +95,22 @@ private:
 	ID3D11RasterizerState * wireFrameRasterizerState = nullptr;
 	ID3D11RasterizerState * SolidRasterizerState = nullptr;
 
-	//model 
+	//model mesh
 	ID3D11Buffer * modelvertbuffer = NULL;
 	ID3D11Buffer * modelindexbuffer = NULL;
 	unsigned int modelindexCount = 0;
+
+	//model animation data
+	Skeleton * mSkeleton = nullptr;
+	unsigned int triCount = 0;
+	vector<unsigned int> triIndices;
+	vector<BlendingVertex> verts;
+	vector<Bone> bind_pose;
+	SIMPLE_VERTEX * keyFrames = nullptr;
+	unsigned int keyFrameCount = 0;
+	unsigned int boneCount = 0;
+	unsigned int currKeyFrame = 0;
+
 
 	//ground plane
 	ID3D11Buffer * groundvertbuffer = NULL;
@@ -113,7 +127,7 @@ private:
 
 	ID3D11VertexShader*     vertexshader = NULL;
 	ID3D11PixelShader*      pixelshader = NULL;
-	
+
 	ID3D11Buffer * constBuffer = NULL;
 	VRAM send_to_ram;
 
@@ -121,8 +135,6 @@ private:
 
 	UINT stride = sizeof(SIMPLE_VERTEX);
 	UINT offset = 0;
-
-	vector<Bone> bind_pose;
 
 };
 
@@ -132,6 +144,8 @@ private:
 
 DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 {
+
+#pragma region wind
 	// ****************** BEGIN WARNING ***********************// 
 	// WINDOWS CODE, I DON'T TEACH THIS YOU MUST KNOW IT ALREADY! 
 	application = hinst;
@@ -157,10 +171,11 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 
 	ShowWindow(window, SW_SHOW);
 	//********************* END WARNING ************************//
-
+#pragma endregion
 	//XTime
 	Time.Restart();
 
+#pragma region camera model
 	//camera data
 	//static const XMVECTORF32 eye = { 0.0f, 1.0f, -1.0f, 0.0f };
 	//static const XMVECTORF32 eye = { 0.0f, 35.0f, -30.0f, 0.0f };
@@ -184,9 +199,9 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	XMStoreFloat4x4(&send_to_ram.camProj, XMMatrixTranspose(perspectiveMatrix));
 	//model data
 	XMStoreFloat4x4(&send_to_ram.modelPos, XMMatrixTranspose(XMMatrixIdentity()));
+#pragma endregion
 
-
-
+#pragma region swap chain device context
 	DXGI_SWAP_CHAIN_DESC scd;
 	ZeroMemory(&scd, sizeof(DXGI_SWAP_CHAIN_DESC));
 	scd.BufferCount = 1;
@@ -195,8 +210,10 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	scd.OutputWindow = window;
 	scd.SampleDesc.Count = 1;
 	scd.Windowed = TRUE;
-
 	D3D11CreateDeviceAndSwapChain(0, D3D_DRIVER_TYPE_HARDWARE, 0, 0, 0, 0, D3D11_SDK_VERSION, &scd, &swapchain, &device, 0, &context);
+#pragma endregion
+
+#pragma region render target view
 	ID3D11Texture2D * BackBuffer;
 	ZeroMemory(&BackBuffer, sizeof(ID3D11Texture2D));
 	swapchain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&BackBuffer);
@@ -208,6 +225,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	viewport.Width = BACKBUFFER_WIDTH;
 	viewport.TopLeftX = 0;
 	viewport.TopLeftY = 0;
+#pragma endregion
 
 #pragma region	depth stencl
 	CD3D11_TEXTURE2D_DESC depthStencilDesc(
@@ -251,12 +269,9 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	char bone[]{ "bone.bin" };
 	char animation[]{ "animation.bin" };
 
-	function(file, mesh, bone, animation);
+	//function(file, mesh, bone, animation);
 
-	unsigned int triCount = 0;
-	vector<unsigned int> triIndices;
-	vector<BlendingVertex> verts;
-	Skeleton * mSkeleton = new Skeleton();
+	mSkeleton = new Skeleton();
 	functionality(mesh, bone, animation, triCount, triIndices, verts, mSkeleton, bind_pose);
 #pragma endregion
 
@@ -351,19 +366,24 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 
 #pragma endregion
 
+#pragma region create shaders
 	device->CreateVertexShader(Trivial_VS, sizeof(Trivial_VS), NULL, &vertexshader);
 	device->CreatePixelShader(Trivial_PS, sizeof(Trivial_PS), NULL, &pixelshader);
+#pragma endregion
 
+#pragma region imput layout
 	D3D11_INPUT_ELEMENT_DESC vertlayout[] =
 	{
 		"POSITION", 0,DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA,0 ,{"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 }
 	};
 	UINT numElements = ARRAYSIZE(vertlayout);
 	device->CreateInputLayout(vertlayout, numElements, Trivial_VS, sizeof(Trivial_VS), &layout);
+#pragma endregion
 
+#pragma region const buff
 	CD3D11_BUFFER_DESC constBufferDesc(sizeof(VRAM), D3D11_BIND_CONSTANT_BUFFER);
 	device->CreateBuffer(&constBufferDesc, nullptr, &constBuffer);
-
+#pragma endregion
 
 }
 
@@ -423,6 +443,27 @@ bool DEMO_APP::Run()
 		XMStoreFloat4x4(&camera, newcamera);
 		XMStoreFloat4x4(&send_to_ram.camView, XMMatrixTranspose(newcamera));
 	}
+	if (imput.bLeft == false && imput.buttons[VK_LEFT])
+	{
+		if (currKeyFrame <= 0)
+			currKeyFrame = 0;
+		else
+			currKeyFrame--;
+		imput.bLeft = true;
+	}
+	if (!imput.buttons[VK_LEFT])
+		imput.bLeft = false;
+	
+	if (imput.bRight == false && imput.buttons[VK_RIGHT])
+	{
+		if (currKeyFrame >= keyFrameCount)
+			currKeyFrame = keyFrameCount;
+		else
+			currKeyFrame++;
+		imput.bRight = true;
+	}
+	if (!imput.buttons[VK_RIGHT])
+		imput.bRight = false;
 #pragma endregion
 
 #pragma region settings for all draw calls
@@ -445,7 +486,7 @@ bool DEMO_APP::Run()
 	context->IASetVertexBuffers(0, 1, &modelvertbuffer, &stride, &offset);
 	context->IASetIndexBuffer(modelindexbuffer, DXGI_FORMAT_R32_UINT, offset);
 	context->RSSetState(wireFrameRasterizerState);
-	context->DrawIndexed(modelindexCount, 0, 0);
+	//context->DrawIndexed(modelindexCount, 0, 0);
 #pragma endregion
 
 #pragma region draw ground
@@ -456,13 +497,42 @@ bool DEMO_APP::Run()
 #pragma endregion
 
 #pragma region debug joints
-	static SIMPLE_VERTEX * jointBindPose = new SIMPLE_VERTEX[bind_pose.size()];
+	/*static SIMPLE_VERTEX * jointBindPose = new SIMPLE_VERTEX[bind_pose.size()];
 	for (size_t i = 0; i < bind_pose.size(); i++)
 	{
 		jointBindPose[i].xyzw = XMFLOAT4(-bind_pose[i].matrix._41, -bind_pose[i].matrix._42, -bind_pose[i].matrix._43, -bind_pose[i].matrix._44);
 		jointBindPose[i].color = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+	}*/
+	//DrawPoints(jointBindPose[0], (int)bind_pose.size());
+
+	//keyframes 
+	if (debugPointInit == false)
+	{
+		keyFrameCount = (int)mSkeleton->joints.size();
+		boneCount = (int)mSkeleton->joints[0]->bones.size();
+		keyFrames = new SIMPLE_VERTEX[keyFrameCount * boneCount];
+
+		for (size_t i = 0; i < (keyFrameCount * boneCount); )
+		{
+			ZeroMemory(keyFrames, sizeof(SIMPLE_VERTEX) * (keyFrameCount * boneCount));
+			for (size_t j = 0; j < keyFrameCount; j++)
+			{
+				for (size_t k = 0; k < boneCount; k++)
+				{
+					keyFrames[i].xyzw = XMFLOAT4(mSkeleton->joints[j]->bones[k].matrix._41, mSkeleton->joints[j]->bones[k].matrix._42, mSkeleton->joints[j]->bones[k].matrix._43, mSkeleton->joints[j]->bones[k].matrix._44);
+					i++;
+				}
+			}
+		}
+		DrawPoints(keyFrames[0], boneCount);
 	}
-	DrawPoints(jointBindPose[0], (int)bind_pose.size());
+	else
+	{
+		DrawPoints(keyFrames[0], boneCount);
+	}
+	//end keyframes 
+
+
 #pragma endregion
 
 #pragma region debug bones
@@ -562,7 +632,7 @@ bool DEMO_APP::Run()
 	boneBindPose[60].xyzw = XMFLOAT4(-bind_pose[31].matrix._41, -bind_pose[31].matrix._42, -bind_pose[31].matrix._43, -bind_pose[31].matrix._44);
 	boneBindPose[61].xyzw = XMFLOAT4(-bind_pose[32].matrix._41, -bind_pose[32].matrix._42, -bind_pose[32].matrix._43, -bind_pose[32].matrix._44);
 
-	DrawLines(boneBindPose[0], (int)62);
+	//DrawLines(boneBindPose[0], (int)62);
 
 #pragma endregion
 
@@ -601,7 +671,7 @@ void DEMO_APP::DrawPoints(SIMPLE_VERTEX & ThePoints, int PointCount)
 		UINT VertexCount = PointCount;
 		ZeroMemory(&bufferdescription, sizeof(D3D11_BUFFER_DESC));
 		bufferdescription.Usage = D3D11_USAGE_IMMUTABLE;
-		bufferdescription.ByteWidth = (UINT)(sizeof(SIMPLE_VERTEX) * VertexCount);
+		bufferdescription.ByteWidth = (UINT)(sizeof(SIMPLE_VERTEX) * VertexCount * keyFrameCount);
 		bufferdescription.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 		bufferdescription.CPUAccessFlags = NULL;
 		bufferdescription.MiscFlags = NULL;
@@ -613,11 +683,12 @@ void DEMO_APP::DrawPoints(SIMPLE_VERTEX & ThePoints, int PointCount)
 	}
 	if (debugPointInit == true)
 	{
-		UINT VertexCount = 1048;
+		UINT VertexCount = PointCount;
 		context->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_POINTLIST);
 		context->IASetVertexBuffers(0, 1, &debugPointBuffer, &stride, &offset);
 		context->RSSetState(SolidRasterizerState);
-		context->Draw(VertexCount, 0);
+		UINT indexoffset = currKeyFrame * boneCount;
+		context->Draw(VertexCount, indexoffset);
 	}
 }
 
