@@ -110,7 +110,9 @@ private:
 	unsigned int keyFrameCount = 0;
 	unsigned int boneCount = 0;
 	unsigned int currKeyFrame = 0;
-
+	double animLoopTime = 0.0f;
+	double currAnimTime = 0.0f;
+	int keyframeAnimIndex = 0;
 
 	//ground plane
 	ID3D11Buffer * groundvertbuffer = NULL;
@@ -172,6 +174,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	ShowWindow(window, SW_SHOW);
 	//********************* END WARNING ************************//
 #pragma endregion
+
 	//XTime
 	Time.Restart();
 
@@ -393,7 +396,12 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 
 bool DEMO_APP::Run()
 {
+#pragma region time
 	Time.Signal();
+	currAnimTime += Time.SmoothDelta();
+	if (currAnimTime > animLoopTime)
+		currAnimTime = 0.0f;
+#pragma endregion
 
 #pragma region mouse update
 	if (imput.mouse_move)
@@ -511,20 +519,47 @@ bool DEMO_APP::Run()
 		keyFrameCount = (int)mSkeleton->joints.size();
 		boneCount = (int)mSkeleton->joints[0]->bones.size();
 		keyFrames = new SIMPLE_VERTEX[keyFrameCount * boneCount];
-
+		animLoopTime = mSkeleton->joints[keyFrameCount-1]->Time;
 		for (size_t i = 0; i < (keyFrameCount * boneCount); )
 		{
 			ZeroMemory(keyFrames, sizeof(SIMPLE_VERTEX) * (keyFrameCount * boneCount));
 			for (size_t j = 0; j < keyFrameCount; j++)
-			{
 				for (size_t k = 0; k < boneCount; k++)
 				{
 					keyFrames[i].xyzw = XMFLOAT4(mSkeleton->joints[j]->bones[k].matrix._41, mSkeleton->joints[j]->bones[k].matrix._42, mSkeleton->joints[j]->bones[k].matrix._43, mSkeleton->joints[j]->bones[k].matrix._44);
 					i++;
 				}
-			}
 		}
+		for (size_t i = 0; i < keyFrameCount; i++)
+			if (currAnimTime > mSkeleton->joints[i]->Time)
+				keyframeAnimIndex = (int)i;
+
+
+
+
+
+
+
+		vector<SIMPLE_VERTEX> realTimeJoints;
+		
+		//calculation for slerp to generate real time vector 
+		/*
+		for (size_t i = 0; i < boneCount; i++)
+		{
+			XMVECTOR from = XMVectorSet(mSkeleton->joints[keyframeAnimIndex]->bones[i].matrix._41, mSkeleton->joints[keyframeAnimIndex]->bones[i].matrix._42, mSkeleton->joints[keyframeAnimIndex]->bones[i].matrix._43, mSkeleton->joints[keyframeAnimIndex]->bones[i].matrix._44);
+			XMVECTOR to = XMVectorSet(mSkeleton->joints[keyframeAnimIndex + 1]->bones[i].matrix._41, mSkeleton->joints[keyframeAnimIndex + 1]->bones[i].matrix._42, mSkeleton->joints[keyframeAnimIndex + 1]->bones[i].matrix._43, mSkeleton->joints[keyframeAnimIndex + 1]->bones[i].matrix._44);
+			XMVECTOR realTimePoint = XMQuaternionSlerp(from, to, )
+		}
+			XMFLOAT4 from(0.0f,0.0f,0.0f,0.0f);
+			XMFLOAT4 to(1.0f, 1.0f, 1.0f, 1.0f);
+
+			XMVECTOR realTimePoint = XMQuaternionSlerp(XMLoadFloat4(&from), XMLoadFloat4(&to), 0.5f);
+			XMFLOAT4 point;
+			XMStoreFloat4(&point, realTimePoint);*/
+			//end calculation for slerp to generate real time vector 
+
 		DrawPoints(keyFrames[0], boneCount);
+			
 	}
 	else
 	{
