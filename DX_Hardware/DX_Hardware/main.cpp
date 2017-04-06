@@ -113,6 +113,7 @@ private:
 	double animLoopTime = 0.0f;
 	double currAnimTime = 0.0f;
 	int keyframeAnimIndex = 0;
+	double twoKeyFrameTimes[2]{};
 
 	//ground plane
 	ID3D11Buffer * groundvertbuffer = NULL;
@@ -177,6 +178,8 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 
 	//XTime
 	Time.Restart();
+	currAnimTime = 0.01f;
+
 
 #pragma region camera model
 	//camera data
@@ -400,7 +403,7 @@ bool DEMO_APP::Run()
 	Time.Signal();
 	currAnimTime += Time.SmoothDelta();
 	if (currAnimTime > animLoopTime)
-		currAnimTime = 0.0f;
+		currAnimTime = 0.01f;
 #pragma endregion
 
 #pragma region mouse update
@@ -530,15 +533,22 @@ bool DEMO_APP::Run()
 					i++;
 				}
 		}
+
+		//find the two key frames you use
 		for (size_t i = 0; i < keyFrameCount; i++)
 			if (currAnimTime > mSkeleton->joints[i]->Time)
 				keyframeAnimIndex = (int)i;
+		//end find the two key frames you use
 
+		//get the time of the two key frames
+		ZeroMemory(twoKeyFrameTimes, sizeof(double) * 2);
+		twoKeyFrameTimes[0] = mSkeleton->joints[keyframeAnimIndex]->Time;
+		twoKeyFrameTimes[1] = mSkeleton->joints[keyframeAnimIndex + 1]->Time;
+		//end get the time of the two key frames
 
-
-
-
-
+		//get ratio representing the real time between the two key frames
+		double ratio = (currAnimTime - twoKeyFrameTimes[0]) / (twoKeyFrameTimes[1] - twoKeyFrameTimes[0]);
+		//end get ratio representing the real time between the two key frames
 
 		vector<SIMPLE_VERTEX> realTimeJoints;
 		
@@ -550,24 +560,38 @@ bool DEMO_APP::Run()
 			XMVECTOR to = XMVectorSet(mSkeleton->joints[keyframeAnimIndex + 1]->bones[i].matrix._41, mSkeleton->joints[keyframeAnimIndex + 1]->bones[i].matrix._42, mSkeleton->joints[keyframeAnimIndex + 1]->bones[i].matrix._43, mSkeleton->joints[keyframeAnimIndex + 1]->bones[i].matrix._44);
 			XMVECTOR realTimePoint = XMQuaternionSlerp(from, to, )
 		}
-			XMFLOAT4 from(0.0f,0.0f,0.0f,0.0f);
-			XMFLOAT4 to(1.0f, 1.0f, 1.0f, 1.0f);
+		XMFLOAT4 from(0.0f,0.0f,0.0f,0.0f);
+		XMFLOAT4 to(1.0f, 1.0f, 1.0f, 1.0f);
 
-			XMVECTOR realTimePoint = XMQuaternionSlerp(XMLoadFloat4(&from), XMLoadFloat4(&to), 0.5f);
-			XMFLOAT4 point;
-			XMStoreFloat4(&point, realTimePoint);*/
-			//end calculation for slerp to generate real time vector 
+		XMVECTOR realTimePoint = XMQuaternionSlerp(XMLoadFloat4(&from), XMLoadFloat4(&to), 0.5f);
+		XMFLOAT4 point;
+		XMStoreFloat4(&point, realTimePoint);
+		*/
+		//end calculation for slerp to generate real time vector 
 
 		DrawPoints(keyFrames[0], boneCount);
-			
 	}
 	else
 	{
+		//find the two key frames you use
+		for (size_t i = 0; i < keyFrameCount; i++)
+			if (currAnimTime > mSkeleton->joints[i]->Time)
+				keyframeAnimIndex = (int)i;
+		//end find the two key frames you use
+
+		//get the time of the two key frames
+		ZeroMemory(twoKeyFrameTimes, sizeof(double) * 2);
+		twoKeyFrameTimes[0] = mSkeleton->joints[keyframeAnimIndex]->Time;
+		twoKeyFrameTimes[1] = mSkeleton->joints[keyframeAnimIndex + 1]->Time;
+		//end get the time of the two key frames
+
+		//get ratio representing the real time between the two key frames
+		double ratio = (currAnimTime - twoKeyFrameTimes[0]) / (twoKeyFrameTimes[1] - twoKeyFrameTimes[0]);
+		//end get ratio representing the real time between the two key frames
+
 		DrawPoints(keyFrames[0], boneCount);
 	}
 	//end keyframes 
-
-
 #pragma endregion
 
 #pragma region debug bones
