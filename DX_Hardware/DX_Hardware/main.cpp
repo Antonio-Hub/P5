@@ -565,8 +565,6 @@ bool DEMO_APP::Run()
 		//end calculation for slerp to generate real time vector 
 
 		DrawPoints(keyFrames[0], boneCount);
-		delete realTimeJoints;
-		realTimeJoints = nullptr;
 	}
 	else
 	{
@@ -595,7 +593,7 @@ bool DEMO_APP::Run()
 			XMVECTOR realTimePoint = XMQuaternionSlerp(from, to, (float)ratio);
 			SIMPLE_VERTEX sv;
 			XMStoreFloat4(&sv.xyzw, realTimePoint);
-			//realTimeJoints.push_back(sv);
+			realTimeJoints[i] = sv;
 		}
 		//end calculation for slerp to generate real time vector 
 		ZeroMemory(&mapResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
@@ -603,10 +601,9 @@ bool DEMO_APP::Run()
 		memcpy(mapResource.pData, realTimeJoints, sizeof(SIMPLE_VERTEX) * boneCount);
 		context->Unmap(debugPointBuffer, 0);
 
+		DrawPoints(realTimeJoints[0], boneCount);
 
-		DrawPoints(keyFrames[0], boneCount);
-		delete realTimeJoints;
-		realTimeJoints = nullptr;
+		//DrawPoints(keyFrames[0], boneCount);
 	}
 	//end keyframes 
 #pragma endregion
