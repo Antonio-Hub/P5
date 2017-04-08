@@ -106,6 +106,7 @@ private:
 	vector<unsigned int> triIndices;
 	vector<BlendingVertex> verts;
 	vector<Bone> bind_pose;
+	SIMPLE_VERTEX * realTimeJoints = nullptr;
 	SIMPLE_VERTEX * keyFrames = nullptr;
 	unsigned int keyFrameCount = 0;
 	unsigned int boneCount = 0;
@@ -138,7 +139,7 @@ private:
 
 	UINT stride = sizeof(SIMPLE_VERTEX);
 	UINT offset = 0;
-
+	D3D11_MAPPED_SUBRESOURCE mapResource;
 };
 
 //************************************************************
@@ -550,26 +551,22 @@ bool DEMO_APP::Run()
 		double ratio = (currAnimTime - twoKeyFrameTimes[0]) / (twoKeyFrameTimes[1] - twoKeyFrameTimes[0]);
 		//end get ratio representing the real time between the two key frames
 
-		vector<SIMPLE_VERTEX> realTimeJoints;
-		
-		//calculation for slerp to generate real time vector 
-		/*
-		for (size_t i = 0; i < boneCount; i++)
+		//calculation for slerp to generate real time vector
+		realTimeJoints = new SIMPLE_VERTEX[boneCount];
+		for (size_t i = 0; i < boneCount - 1; i++)
 		{
 			XMVECTOR from = XMVectorSet(mSkeleton->joints[keyframeAnimIndex]->bones[i].matrix._41, mSkeleton->joints[keyframeAnimIndex]->bones[i].matrix._42, mSkeleton->joints[keyframeAnimIndex]->bones[i].matrix._43, mSkeleton->joints[keyframeAnimIndex]->bones[i].matrix._44);
 			XMVECTOR to = XMVectorSet(mSkeleton->joints[keyframeAnimIndex + 1]->bones[i].matrix._41, mSkeleton->joints[keyframeAnimIndex + 1]->bones[i].matrix._42, mSkeleton->joints[keyframeAnimIndex + 1]->bones[i].matrix._43, mSkeleton->joints[keyframeAnimIndex + 1]->bones[i].matrix._44);
-			XMVECTOR realTimePoint = XMQuaternionSlerp(from, to, )
+			XMVECTOR realTimePoint = XMQuaternionSlerp(from, to, (float)ratio);
+			SIMPLE_VERTEX sv;
+			XMStoreFloat4(&sv.xyzw, realTimePoint);
+			realTimeJoints[i] = sv;
 		}
-		XMFLOAT4 from(0.0f,0.0f,0.0f,0.0f);
-		XMFLOAT4 to(1.0f, 1.0f, 1.0f, 1.0f);
-
-		XMVECTOR realTimePoint = XMQuaternionSlerp(XMLoadFloat4(&from), XMLoadFloat4(&to), 0.5f);
-		XMFLOAT4 point;
-		XMStoreFloat4(&point, realTimePoint);
-		*/
 		//end calculation for slerp to generate real time vector 
 
 		DrawPoints(keyFrames[0], boneCount);
+		delete realTimeJoints;
+		realTimeJoints = nullptr;
 	}
 	else
 	{
@@ -589,7 +586,27 @@ bool DEMO_APP::Run()
 		double ratio = (currAnimTime - twoKeyFrameTimes[0]) / (twoKeyFrameTimes[1] - twoKeyFrameTimes[0]);
 		//end get ratio representing the real time between the two key frames
 
+		//calculation for slerp to generate real time vector 
+		realTimeJoints = new SIMPLE_VERTEX[boneCount];
+		for (size_t i = 0; i < boneCount - 1; i++)
+		{
+			XMVECTOR from = XMVectorSet(mSkeleton->joints[keyframeAnimIndex]->bones[i].matrix._41, mSkeleton->joints[keyframeAnimIndex]->bones[i].matrix._42, mSkeleton->joints[keyframeAnimIndex]->bones[i].matrix._43, mSkeleton->joints[keyframeAnimIndex]->bones[i].matrix._44);
+			XMVECTOR to = XMVectorSet(mSkeleton->joints[keyframeAnimIndex + 1]->bones[i].matrix._41, mSkeleton->joints[keyframeAnimIndex + 1]->bones[i].matrix._42, mSkeleton->joints[keyframeAnimIndex + 1]->bones[i].matrix._43, mSkeleton->joints[keyframeAnimIndex + 1]->bones[i].matrix._44);
+			XMVECTOR realTimePoint = XMQuaternionSlerp(from, to, (float)ratio);
+			SIMPLE_VERTEX sv;
+			XMStoreFloat4(&sv.xyzw, realTimePoint);
+			//realTimeJoints.push_back(sv);
+		}
+		//end calculation for slerp to generate real time vector 
+		ZeroMemory(&mapResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
+		context->Map(debugPointBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapResource);
+		memcpy(mapResource.pData, realTimeJoints, sizeof(SIMPLE_VERTEX) * boneCount);
+		context->Unmap(debugPointBuffer, 0);
+
+
 		DrawPoints(keyFrames[0], boneCount);
+		delete realTimeJoints;
+		realTimeJoints = nullptr;
 	}
 	//end keyframes 
 #pragma endregion
@@ -729,10 +746,10 @@ void DEMO_APP::DrawPoints(SIMPLE_VERTEX & ThePoints, int PointCount)
 		D3D11_SUBRESOURCE_DATA InitData;
 		UINT VertexCount = PointCount;
 		ZeroMemory(&bufferdescription, sizeof(D3D11_BUFFER_DESC));
-		bufferdescription.Usage = D3D11_USAGE_IMMUTABLE;
+		bufferdescription.Usage = D3D11_USAGE_DYNAMIC;
 		bufferdescription.ByteWidth = (UINT)(sizeof(SIMPLE_VERTEX) * VertexCount * keyFrameCount);
 		bufferdescription.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-		bufferdescription.CPUAccessFlags = NULL;
+		bufferdescription.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 		bufferdescription.MiscFlags = NULL;
 		bufferdescription.StructureByteStride = sizeof(SIMPLE_VERTEX);
 		ZeroMemory(&InitData, sizeof(D3D11_SUBRESOURCE_DATA));
