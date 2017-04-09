@@ -105,6 +105,7 @@ private:
 	unsigned int triCount = 0;
 	vector<unsigned int> triIndices;
 	vector<BlendingVertex> verts;
+	VertexBlending ** blendingWeights = nullptr;
 	vector<Bone> bind_pose;
 	SIMPLE_VERTEX * realTimeJoints = nullptr;
 	SIMPLE_VERTEX * keyFrames = nullptr;
@@ -301,6 +302,13 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 		model[i].color.z = modelColor[2];
 		model[i].color.w = modelColor[3];
 	}
+	//pointer to array of pointers
+	blendingWeights = new VertexBlending*[verts.size()];
+	for (size_t i = 0; i < verts.size(); i++)
+	{
+		blendingWeights[i] = new VertexBlending[5];
+	}
+
 
 	ZeroMemory(&bufferdescription, sizeof(D3D11_BUFFER_DESC));
 	bufferdescription.Usage = D3D11_USAGE_IMMUTABLE;
@@ -312,6 +320,8 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	ZeroMemory(&InitData, sizeof(D3D11_SUBRESOURCE_DATA));
 	InitData.pSysMem = model;
 	device->CreateBuffer(&bufferdescription, &InitData, &modelvertbuffer);
+	delete model;
+
 
 	modelindexCount = (unsigned int)triIndices.size();
 	unsigned int * modelIndex;
@@ -391,7 +401,6 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	CD3D11_BUFFER_DESC constBufferDesc(sizeof(VRAM), D3D11_BIND_CONSTANT_BUFFER);
 	device->CreateBuffer(&constBufferDesc, nullptr, &constBuffer);
 #pragma endregion
-
 }
 
 //************************************************************
@@ -565,6 +574,7 @@ bool DEMO_APP::Run()
 		//end calculation for slerp to generate real time vector 
 
 		DrawPoints(keyFrames[0], boneCount);
+		delete realTimeJoints;
 	}
 	else
 	{
@@ -602,7 +612,7 @@ bool DEMO_APP::Run()
 		context->Unmap(debugPointBuffer, 0);
 
 		DrawPoints(realTimeJoints[0], boneCount);
-
+		delete realTimeJoints;
 		//DrawPoints(keyFrames[0], boneCount);
 	}
 	//end keyframes 
