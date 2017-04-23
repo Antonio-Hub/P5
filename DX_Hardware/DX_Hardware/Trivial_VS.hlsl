@@ -2,6 +2,8 @@ struct INPUT_VERTEX
 {
 	float4 coordinate : POSITION;
 	float4 color : COLOR;
+	float4 index : INDEX;
+	float4 weight : WEIGHT;
 };
 
 struct OUTPUT_VERTEX

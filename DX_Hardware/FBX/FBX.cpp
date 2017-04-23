@@ -63,6 +63,7 @@ XMFLOAT4X4 FBXMatrixtoXMMatrix(FbxMatrix m)
 }
 bool LoadBonesandAnimation(FbxNode * node, FbxScene* scene, Skeleton* & bones, vector<Bone> & bind_pose, unordered_map<unsigned int, ControlPoint*> & mControlPoints)
 {
+
 	FbxMesh * mesh = node->GetMesh();
 	unsigned int numDeformers = mesh->GetDeformerCount();
 	for (unsigned int deformerIndex = 0; deformerIndex < numDeformers; deformerIndex++)
@@ -345,7 +346,6 @@ void GetTangent(FbxMesh* inMesh, int inCtrlPointIndex, int inVertexCounter, XMFL
 bool LoadMesh(FbxNode* node, unordered_map<unsigned int, ControlPoint*> mControlPoints, unsigned int& mTriangleCount, vector<Triangle>&mTriangles, vector<BlendingVertex>&mVertices, unsigned int& vertCount)
 {
 	FbxMesh* currMesh = node->GetMesh();
-	FbxVector4* see = currMesh->GetControlPoints();
 	mTriangleCount = currMesh->GetPolygonCount();
 	int vertexCounter = 0;
 	mTriangles.reserve(mTriangleCount);
@@ -413,9 +413,142 @@ void ProcessGeometry(unordered_map<unsigned int, ControlPoint*>mControlPoints, S
 		ProcessGeometry(mControlPoints, mSkeleton, inNode->GetChild(i), triCount, triIndices, verts, hasAnimation, mScene, bind_pose, vertCount);
 	}
 }
-__declspec(dllexport) void function(char * fileName, char * outFileNameMesh, char * outFileNameBone, char * outFileNameAnimations)
+struct my_fbx_joint { FbxNode * pNode; int Parent_Index; };
+void DepthFirstSearch(FbxNode * pNode, vector<my_fbx_joint> & Container, int Parent_Index)
+{
+	my_fbx_joint * Joint = new my_fbx_joint;
+	Joint->pNode = pNode;
+	Joint->Parent_Index = Parent_Index++;
+	Container.push_back(*Joint);
+	for (size_t i = 0; i < (size_t)pNode->GetChildCount(); i++)
+		DepthFirstSearch(pNode->GetChild((int)i), Container, Parent_Index);
+			
+}
+__declspec(dllexport) void function(char * fileName, char * outFileNameMesh, char * outFileNameBone, char * outFileNameAnimations, vector<joint> & Bind_Pose, anim_clip & Animation)
 {
 
+	FbxManager * pManager = FbxManager::Create();
+	FbxIOSettings * pIOSettings = FbxIOSettings::Create(pManager, IOSROOT);
+	pManager->SetIOSettings(pIOSettings);
+	FbxString LPath = FbxGetApplicationDirectory();
+	pManager->LoadPluginsDirectory(LPath.Buffer());
+	FbxScene * pScene = FbxScene::Create(pManager, "MyScene");
+	LoadScene(pManager, pScene, fileName);
+
+
+
+	unsigned int PoseCount = pScene->GetPoseCount();
+	FbxPose * pBindPose = pScene->GetPose(0);
+	unsigned int JointCount = pBindPose->GetCount();
+	FbxSkeleton * pSkeleton = nullptr;
+	int count = 0;
+	do
+	{
+		FbxNode * pNode = pBindPose->GetNode(count++);
+		pSkeleton = pNode->GetSkeleton();
+	} while (!pSkeleton);
+	FbxNode * pNode = pSkeleton->GetNode(0);
+	int ParentIndex = -1;
+	vector<my_fbx_joint> arrBindPose;
+	DepthFirstSearch(pNode, arrBindPose, ParentIndex);
+	vector<joint> arrTransforms;
+	for (size_t i = 0; i < arrBindPose.size(); i++)
+	{
+		joint * pJoint = new joint;
+		pJoint->Parent_Index = arrBindPose[i].Parent_Index;
+		pJoint->global_xform._11 = (float)arrBindPose[i].pNode->EvaluateGlobalTransform().mData[0][0];
+		pJoint->global_xform._12 = (float)arrBindPose[i].pNode->EvaluateGlobalTransform().mData[0][1];
+		pJoint->global_xform._13 = (float)arrBindPose[i].pNode->EvaluateGlobalTransform().mData[0][2];
+		pJoint->global_xform._14 = (float)arrBindPose[i].pNode->EvaluateGlobalTransform().mData[0][3];
+		pJoint->global_xform._21 = (float)arrBindPose[i].pNode->EvaluateGlobalTransform().mData[1][0];
+		pJoint->global_xform._22 = (float)arrBindPose[i].pNode->EvaluateGlobalTransform().mData[1][1];
+		pJoint->global_xform._23 = (float)arrBindPose[i].pNode->EvaluateGlobalTransform().mData[1][2];
+		pJoint->global_xform._24 = (float)arrBindPose[i].pNode->EvaluateGlobalTransform().mData[1][3];
+		pJoint->global_xform._31 = (float)arrBindPose[i].pNode->EvaluateGlobalTransform().mData[2][0];
+		pJoint->global_xform._32 = (float)arrBindPose[i].pNode->EvaluateGlobalTransform().mData[2][1];
+		pJoint->global_xform._33 = (float)arrBindPose[i].pNode->EvaluateGlobalTransform().mData[2][2];
+		pJoint->global_xform._34 = (float)arrBindPose[i].pNode->EvaluateGlobalTransform().mData[2][3];
+		pJoint->global_xform._41 = (float)arrBindPose[i].pNode->EvaluateGlobalTransform().mData[3][0];
+		pJoint->global_xform._42 = (float)arrBindPose[i].pNode->EvaluateGlobalTransform().mData[3][1];
+		pJoint->global_xform._43 = (float)arrBindPose[i].pNode->EvaluateGlobalTransform().mData[3][2];
+		pJoint->global_xform._44 = (float)arrBindPose[i].pNode->EvaluateGlobalTransform().mData[3][3];
+		arrTransforms.push_back(*pJoint);
+	}
+	Bind_Pose = arrTransforms;
+	FbxAnimStack * pAnimStack = pScene->GetCurrentAnimationStack();
+	FbxTimeSpan TimeSpan = pAnimStack->GetLocalTimeSpan();
+	FbxTime Time = TimeSpan.GetDuration();
+	FbxLongLong FrameCount = Time.GetFrameCount(FbxTime::EMode::eFrames24);
+
+	anim_clip animation;
+	animation.Duration = Time.GetSecondDouble();
+	for (size_t FrameIndex = 1; FrameIndex < (size_t)FrameCount; FrameIndex++)
+	{
+		keyframe TheKeyFrame;
+		Time.SetFrame(FrameIndex, FbxTime::EMode::eFrames24);
+		TheKeyFrame.Time = Time.GetSecondDouble();
+		for (size_t JointIndex = 0; JointIndex < arrBindPose.size(); JointIndex++)
+		{
+			XMFLOAT4X4 * pJoint = new XMFLOAT4X4;
+			pJoint->_11 = (float)arrBindPose[JointIndex].pNode->EvaluateGlobalTransform(Time).mData[0][0];
+			pJoint->_12 = (float)arrBindPose[JointIndex].pNode->EvaluateGlobalTransform(Time).mData[0][1];
+			pJoint->_13 = (float)arrBindPose[JointIndex].pNode->EvaluateGlobalTransform(Time).mData[0][2];
+			pJoint->_14 = (float)arrBindPose[JointIndex].pNode->EvaluateGlobalTransform(Time).mData[0][3];
+			pJoint->_21 = (float)arrBindPose[JointIndex].pNode->EvaluateGlobalTransform(Time).mData[1][0];
+			pJoint->_22 = (float)arrBindPose[JointIndex].pNode->EvaluateGlobalTransform(Time).mData[1][1];
+			pJoint->_23 = (float)arrBindPose[JointIndex].pNode->EvaluateGlobalTransform(Time).mData[1][2];
+			pJoint->_24 = (float)arrBindPose[JointIndex].pNode->EvaluateGlobalTransform(Time).mData[1][3];
+			pJoint->_31 = (float)arrBindPose[JointIndex].pNode->EvaluateGlobalTransform(Time).mData[2][0];
+			pJoint->_32 = (float)arrBindPose[JointIndex].pNode->EvaluateGlobalTransform(Time).mData[2][1];
+			pJoint->_33 = (float)arrBindPose[JointIndex].pNode->EvaluateGlobalTransform(Time).mData[2][2];
+			pJoint->_34 = (float)arrBindPose[JointIndex].pNode->EvaluateGlobalTransform(Time).mData[2][3];
+			pJoint->_41 = (float)arrBindPose[JointIndex].pNode->EvaluateGlobalTransform(Time).mData[3][0];
+			pJoint->_42 = (float)arrBindPose[JointIndex].pNode->EvaluateGlobalTransform(Time).mData[3][1];
+			pJoint->_43 = (float)arrBindPose[JointIndex].pNode->EvaluateGlobalTransform(Time).mData[3][2];
+			pJoint->_44 = (float)arrBindPose[JointIndex].pNode->EvaluateGlobalTransform(Time).mData[3][3];
+			TheKeyFrame.Joints.push_back(*pJoint);
+		}
+		animation.Frames.push_back(TheKeyFrame);
+	}
+	Animation = animation;
+	FbxMesh * pMesh = nullptr;
+	count = 0;
+	do
+	{
+		FbxNode * pNode = pBindPose->GetNode(count++);
+		pMesh = pNode->GetMesh();
+	} while (!pMesh);
+
+
+
+
+	int DeformerCount = pMesh->GetDeformerCount();
+	//FbxDeformer * Deformer = pMesh->GetDeformer(0);
+	//FbxDeformer::EDeformerType DeformerType = Deformer->GetDeformerType();
+	FbxSkin * pSkin = (FbxSkin*)pMesh->GetDeformer(0);
+	int ClusterCount = pSkin->GetClusterCount();
+	vert_pos_skinned * pSkinVerts;
+	for (size_t ClusterIndex = 0; ClusterIndex < ClusterCount; ClusterIndex++)
+	{
+		FbxCluster *pCluster = pSkin->GetCluster((int)ClusterIndex);
+		FbxNode * pNode = pCluster->GetLink();
+		arrTransforms[ClusterIndex];
+		int ControlPointIndicesCount = pCluster->GetControlPointIndicesCount();
+		for (size_t ControlPointIndex = 0; ControlPointIndex < ControlPointIndicesCount; ControlPointIndex++)
+		{
+			double * pWeights = pCluster->GetControlPointWeights();
+			int * pControllPointIndices = pCluster->GetControlPointIndices();
+
+
+		}
+		
+	}
+
+
+
+
+
+	/////////////////////////////////////
 	FbxManager * mManager = nullptr;
 	FbxScene * mScene = nullptr;
 	bool bReturn = false;
@@ -504,7 +637,6 @@ __declspec(dllexport) void function(char * fileName, char * outFileNameMesh, cha
 		mSkeleton->joints.clear();
 	}
 }
-
 __declspec(dllexport) bool functionality(char * inFileNameMesh, char * inFileNameBone, char * inFileNameAnimations, unsigned int & triCount, vector<unsigned int>& triIndices, vector<BlendingVertex>& verts, Skeleton* & mSkeleton, vector<Bone>& bind_pose)
 {
 	FILE * f;
