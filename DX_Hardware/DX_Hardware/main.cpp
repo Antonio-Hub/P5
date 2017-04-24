@@ -537,21 +537,16 @@ bool DEMO_APP::Run()
 	for (size_t k = 0; k < boneCount; k++)
 	keyFrames[i++].xyzw = XMFLOAT4(IdleAnimationData.Frames[j].Joints[k]._41, IdleAnimationData.Frames[j].Joints[k]._42, IdleAnimationData.Frames[j].Joints[k]._43, IdleAnimationData.Frames[j].Joints[k]._44);
 	*/
-	//find the two key frames you use
 	for (size_t i = 0; i < keyFrameCount - 1; i++)
 		if (currAnimTime > IdleAnimationData.Frames[i].Time)
 			keyframeAnimIndex = (int)i;
 
-	//end find the two key frames you use
-	//get the time of the two key frames
 	ZeroMemory(twoKeyFrameTimes, sizeof(double) * 2);
 	twoKeyFrameTimes[0] = IdleAnimationData.Frames[keyframeAnimIndex].Time;
 	twoKeyFrameTimes[1] = IdleAnimationData.Frames[keyframeAnimIndex + 1].Time;
-	//end get the time of the two key frames
-	//get ratio representing the real time between the two key frames
+
 	double ratio = (currAnimTime - twoKeyFrameTimes[0]) / (twoKeyFrameTimes[1] - twoKeyFrameTimes[0]);
-	//end get ratio representing the real time between the two key frames
-	//calculation for slerp to generate real time vector
+
 	realTimeJoints = new SIMPLE_VERTEX[boneCount];
 	for (size_t i = 0; i < boneCount - 1; i++)
 	{
@@ -562,10 +557,8 @@ bool DEMO_APP::Run()
 		XMStoreFloat4(&sv.xyzw, realTimePoint);
 		realTimeJoints[i] = sv;
 	}
-	//end calculation for slerp to generate real time vector
-	
+
 	XMMATRIX * pMatrixReal_Time_Joint = new XMMATRIX[boneCount];
-	//pRealTimeJointData = new XMFLOAT4X4[boneCount]{};
 	for (size_t i = 0; i < (size_t)boneCount; i++)
 	{
 		pMatrixReal_Time_Joint[i] = XMMatrixSet(
@@ -573,20 +566,13 @@ bool DEMO_APP::Run()
 			0.0f, 1.0f, 0.0f, realTimeJoints[i].xyzw.y,
 			0.0f, 0.0f, 1.0f, realTimeJoints[i].xyzw.z,
 			0.0f, 0.0f, 0.0f, realTimeJoints[i].xyzw.w);
-		/*pRealTimeJointData[i]._11 = 1.0f;
-		pRealTimeJointData[i]._22 = 1.0f;
-		pRealTimeJointData[i]._33 = 1.0f;
-		pRealTimeJointData[i]._41 = realTimeJoints[i].xyzw.x;
-		pRealTimeJointData[i]._42 = realTimeJoints[i].xyzw.y;
-		pRealTimeJointData[i]._43 = realTimeJoints[i].xyzw.z;
-		pRealTimeJointData[i]._44 = realTimeJoints[i].xyzw.w;*/
-
 	}
-	
+
 	XMMATRIX * pInverseMatrix_Bind_Pose = new XMMATRIX[boneCount];
 	for (size_t i = 0; i < boneCount; i++)
 	{
-		pInverseMatrix_Bind_Pose[i] = XMMatrixSet(data[i].global_xform._11, data[i].global_xform._12, data[i].global_xform._13, data[i].global_xform._14,
+		pInverseMatrix_Bind_Pose[i] = XMMatrixSet(
+			data[i].global_xform._11, data[i].global_xform._12, data[i].global_xform._13, data[i].global_xform._14,
 			data[i].global_xform._21, data[i].global_xform._22, data[i].global_xform._23, data[i].global_xform._24,
 			data[i].global_xform._31, data[i].global_xform._32, data[i].global_xform._33, data[i].global_xform._34,
 			data[i].global_xform._41, data[i].global_xform._42, data[i].global_xform._43, data[i].global_xform._44);
@@ -607,27 +593,31 @@ bool DEMO_APP::Run()
 			m *= pInverseMatrix_Bind_Pose[(int)realTimeModel[i].index.z] * pMatrixReal_Time_Joint[(int)realTimeModel[i].index.z] * realTimeModel[i].weights.z;
 		XMFLOAT4X4 Matrix{};
 		XMStoreFloat4x4(&Matrix, m);
-		
-		realTimeModel[i].xyzw.x = Matrix._14;
-		realTimeModel[i].xyzw.y = Matrix._24;
-		realTimeModel[i].xyzw.z = Matrix._34;
-		realTimeModel[i].xyzw.w = Matrix._44;
-
+		/*
+			realTimeModel[i].xyzw.x = Matrix._14;
+			realTimeModel[i].xyzw.y = Matrix._24;
+			realTimeModel[i].xyzw.z = Matrix._34;
+			realTimeModel[i].xyzw.w = Matrix._44;
+		*/
 	}
-
+	/*
+	if (debugPointInit == true)
+	{
+		ZeroMemory(&mapResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
+		context->Map(debugPointBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapResource);
+		memcpy(mapResource.pData, &realTimeJoints[0], sizeof(SIMPLE_VERTEX) * boneCount);
+		context->Unmap(debugPointBuffer, 0);
+	}
+	DrawPoints(realTimeJoints[0], boneCount);
+	*/
 
 	ZeroMemory(&mapResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
 	context->Map(modelvertbuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapResource);
 	memcpy(mapResource.pData, &realTimeModel[0], sizeof(SIMPLE_VERTEX) * modelVertCount);
 	context->Unmap(modelvertbuffer, 0);
-	//DrawPoints(realTimeJoints[0], boneCount);
+
 	delete realTimeJoints;
-
-
-
-
-
-
+	context->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	context->IASetVertexBuffers(0, 1, &modelvertbuffer, &stride, &offset);
 	context->IASetIndexBuffer(modelindexbuffer, DXGI_FORMAT_R32_UINT, offset);
 	context->RSSetState(wireFrameRasterizerState);
@@ -860,8 +850,6 @@ bool DEMO_APP::Run()
 	//DrawLines(boneBindPose[0], (int)62);
 
 #pragma endregion
-
-
 
 	swapchain->Present(0, 0);
 	return true;
