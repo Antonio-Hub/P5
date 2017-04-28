@@ -96,6 +96,7 @@ private:
 	ID3D11RasterizerState * SolidRasterizerState = nullptr;
 
 	//model mesh
+	vector<vert_pos_skinned> FileMesh;
 	ID3D11Buffer * modelvertbuffer = NULL;
 	ID3D11Buffer * modelindexbuffer = NULL;
 	unsigned int modelindexCount = 0;
@@ -286,7 +287,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	char animation[]{ "animation.bin" };
 
 
-	function(file, mesh, bone, animation, data, IdleAnimationData);
+	function(file, mesh, bone, animation, data, IdleAnimationData, FileMesh);
 
 	mSkeleton = new Skeleton();
 	functionality(mesh, bone, animation, triCount, triIndices, verts, mSkeleton, bind_pose);
@@ -364,10 +365,10 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	//ground plane//
 	groundindexCount = 6;
 	SIMPLE_VERTEX groundPlane[4]{};
-	groundPlane[0].xyzw = XMFLOAT4(1.0f, 0.0f, 1.0f, 0);
-	groundPlane[1].xyzw = XMFLOAT4(1.0f, 0.0f, -1.0f, 0);
-	groundPlane[2].xyzw = XMFLOAT4(-1.0f, 0.0f, -1.0f, 0);
-	groundPlane[3].xyzw = XMFLOAT4(-1.0f, 0.0f, 1.0f, 0);
+	groundPlane[0].xyzw = XMFLOAT4(100.0f, 0.0f, 100.0f, 0);
+	groundPlane[1].xyzw = XMFLOAT4(100.0f, 0.0f, -100.0f, 0);
+	groundPlane[2].xyzw = XMFLOAT4(-100.0f, 0.0f, -100.0f, 0);
+	groundPlane[3].xyzw = XMFLOAT4(-100.0f, 0.0f, 100.0f, 0);
 	float groundColor[4]{ 1.0f, 1.0f, 0.0f, 0.0f };
 	for (size_t i = 0; i < 4; i++)
 	{
@@ -402,12 +403,10 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	//end ground plane//
 
 #pragma endregion
-
 #pragma region create shaders
 	device->CreateVertexShader(Trivial_VS, sizeof(Trivial_VS), NULL, &vertexshader);
 	device->CreatePixelShader(Trivial_PS, sizeof(Trivial_PS), NULL, &pixelshader);
 #pragma endregion
-
 #pragma region imput layout
 	D3D11_INPUT_ELEMENT_DESC vertlayout[] =
 	{
@@ -419,7 +418,6 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	UINT numElements = ARRAYSIZE(vertlayout);
 	device->CreateInputLayout(vertlayout, numElements, Trivial_VS, sizeof(Trivial_VS), &layout);
 #pragma endregion
-
 #pragma region const buff
 	CD3D11_BUFFER_DESC constBufferDesc(sizeof(VRAM), D3D11_BIND_CONSTANT_BUFFER);
 	device->CreateBuffer(&constBufferDesc, nullptr, &constBuffer);
@@ -526,7 +524,6 @@ bool DEMO_APP::Run()
 
 #pragma region draw model
 
-
 	keyFrameCount = (int)IdleAnimationData.Frames.size();
 	boneCount = (int)IdleAnimationData.Frames[0].Joints.size();
 	animLoopTime = IdleAnimationData.Duration;
@@ -593,14 +590,14 @@ bool DEMO_APP::Run()
 			m *= pInverseMatrix_Bind_Pose[(int)realTimeModel[i].index.z] * pMatrixReal_Time_Joint[(int)realTimeModel[i].index.z] * realTimeModel[i].weights.z;
 		XMFLOAT4X4 Matrix{};
 		XMStoreFloat4x4(&Matrix, m);
-		/*
-			realTimeModel[i].xyzw.x = Matrix._14;
+		
+		/*	realTimeModel[i].xyzw.x = Matrix._14;
 			realTimeModel[i].xyzw.y = Matrix._24;
 			realTimeModel[i].xyzw.z = Matrix._34;
-			realTimeModel[i].xyzw.w = Matrix._44;
-		*/
+			realTimeModel[i].xyzw.w = Matrix._44;*/
+		
 	}
-	/*
+	
 	if (debugPointInit == true)
 	{
 		ZeroMemory(&mapResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
@@ -609,7 +606,7 @@ bool DEMO_APP::Run()
 		context->Unmap(debugPointBuffer, 0);
 	}
 	DrawPoints(realTimeJoints[0], boneCount);
-	*/
+	
 
 	ZeroMemory(&mapResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
 	context->Map(modelvertbuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapResource);
@@ -633,121 +630,121 @@ bool DEMO_APP::Run()
 #pragma endregion
 
 #pragma region debug joints
-	//	/*
-	//	//render bind pose joints
-	//	static SIMPLE_VERTEX * jointBindPose = new SIMPLE_VERTEX[data.size()];
-	//	for (size_t i = 0; i < bind_pose.size(); i++)
-	//	{
-	//	jointBindPose[i].xyzw = XMFLOAT4(-bind_pose[i].matrix._41, -bind_pose[i].matrix._42, -bind_pose[i].matrix._43, -bind_pose[i].matrix._44);
-	//	jointBindPose[i].color = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
-	//	}
-	//	DrawPoints(jointBindPose[0], (int)data.size());
-	//	//end render bind pose joints
-	//	*/
-	//
-	//	//keyframes 
-	//	if (debugPointInit == false)
-	//	{
-	//		keyFrameCount = (int)IdleAnimationData.Frames.size();
-	//		boneCount = (int)IdleAnimationData.Frames[0].Joints.size();
-	//		animLoopTime = IdleAnimationData.Duration;
-	//		/*
-	//		keyFrames = new SIMPLE_VERTEX[keyFrameCount * boneCount]{};
-	//		for (size_t i = 0; i < (keyFrameCount * boneCount); )
-	//		for (size_t j = 0; j < keyFrameCount; j++)
-	//		for (size_t k = 0; k < boneCount; k++)
-	//		keyFrames[i++].xyzw = XMFLOAT4(IdleAnimationData.Frames[j].Joints[k]._41, IdleAnimationData.Frames[j].Joints[k]._42, IdleAnimationData.Frames[j].Joints[k]._43, IdleAnimationData.Frames[j].Joints[k]._44);
-	//		*/
-	//		//find the two key frames you use
-	//		for (size_t i = 0; i < keyFrameCount - 1; i++)
-	//			if (currAnimTime > IdleAnimationData.Frames[i].Time)
-	//				keyframeAnimIndex = (int)i;
-	//
-	//		//end find the two key frames you use
-	//		//get the time of the two key frames
-	//		ZeroMemory(twoKeyFrameTimes, sizeof(double) * 2);
-	//		twoKeyFrameTimes[0] = IdleAnimationData.Frames[keyframeAnimIndex].Time;
-	//		twoKeyFrameTimes[1] = IdleAnimationData.Frames[keyframeAnimIndex + 1].Time;
-	//		//end get the time of the two key frames
-	//		//get ratio representing the real time between the two key frames
-	//		double ratio = (currAnimTime - twoKeyFrameTimes[0]) / (twoKeyFrameTimes[1] - twoKeyFrameTimes[0]);
-	//		//end get ratio representing the real time between the two key frames
-	//		//calculation for slerp to generate real time vector
-	//		realTimeJoints = new SIMPLE_VERTEX[boneCount];
-	//		for (size_t i = 0; i < boneCount - 1; i++)
-	//		{
-	//			XMVECTOR from = XMVectorSet(IdleAnimationData.Frames[keyframeAnimIndex].Joints[i]._41, IdleAnimationData.Frames[keyframeAnimIndex].Joints[i]._42, IdleAnimationData.Frames[keyframeAnimIndex].Joints[i]._43, IdleAnimationData.Frames[keyframeAnimIndex].Joints[i]._44);
-	//			XMVECTOR to = XMVectorSet(IdleAnimationData.Frames[keyframeAnimIndex + 1].Joints[i]._41, IdleAnimationData.Frames[keyframeAnimIndex + 1].Joints[i]._42, IdleAnimationData.Frames[keyframeAnimIndex + 1].Joints[i]._43, IdleAnimationData.Frames[keyframeAnimIndex + 1].Joints[i]._44);
-	//			XMVECTOR realTimePoint = XMQuaternionSlerp(from, to, (float)ratio);
-	//			SIMPLE_VERTEX sv;
-	//			XMStoreFloat4(&sv.xyzw, realTimePoint);
-	//			realTimeJoints[i] = sv;
-	//		}
-	//		//end calculation for slerp to generate real time vector
-	//		pRealTimeJointData = new XMFLOAT4X4[boneCount]{};
-	//		for (size_t i = 0; i < (size_t)boneCount; i++)
-	//		{
-	//			pRealTimeJointData[i]._11 = 1.0f;
-	//			pRealTimeJointData[i]._22 = 1.0f;
-	//			pRealTimeJointData[i]._33 = 1.0f;
-	//			pRealTimeJointData[i]._41 = realTimeJoints[i].xyzw.x;
-	//			pRealTimeJointData[i]._42 = realTimeJoints[i].xyzw.y;
-	//			pRealTimeJointData[i]._43 = realTimeJoints[i].xyzw.z;
-	//			pRealTimeJointData[i]._44 = realTimeJoints[i].xyzw.w;
-	//
-	//		}
-	//		/*ZeroMemory(&mapResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
-	//		context->Map(debugPointBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapResource);
-	//		memcpy(mapResource.pData, &realTimeJoints[0], sizeof(SIMPLE_VERTEX) * boneCount);
-	//		context->Unmap(debugPointBuffer, 0);*/
-	//		DrawPoints(realTimeJoints[0], boneCount);
-	//		delete realTimeJoints;
-	//	}
-	//	else
-	//	{
-	//		//find the two key frames you use
-	//		for (size_t i = 0; i < keyFrameCount - 1; i++)
-	//			if (currAnimTime > IdleAnimationData.Frames[i].Time)
-	//				keyframeAnimIndex = (int)i;
-	//
-	//		//end find the two key frames you use
-	//		//get the time of the two key frames
-	//		ZeroMemory(twoKeyFrameTimes, sizeof(double) * 2);
-	//		twoKeyFrameTimes[0] = IdleAnimationData.Frames[keyframeAnimIndex].Time;
-	//		twoKeyFrameTimes[1] = IdleAnimationData.Frames[keyframeAnimIndex + 1].Time;
-	//		//end get the time of the two key frames
-	//		//get ratio representing the real time between the two key frames
-	//		double ratio = (currAnimTime - twoKeyFrameTimes[0]) / (twoKeyFrameTimes[1] - twoKeyFrameTimes[0]);
-	//		//end get ratio representing the real time between the two key frames
-	//		//calculation for slerp to generate real time vector 
-	//		realTimeJoints = new SIMPLE_VERTEX[boneCount];
-	//		for (size_t i = 0; i < boneCount - 1; i++)
-	//		{
-	//			XMVECTOR from = XMVectorSet(IdleAnimationData.Frames[keyframeAnimIndex].Joints[i]._41, IdleAnimationData.Frames[keyframeAnimIndex].Joints[i]._42, IdleAnimationData.Frames[keyframeAnimIndex].Joints[i]._43, IdleAnimationData.Frames[keyframeAnimIndex].Joints[i]._44);
-	//			XMVECTOR to = XMVectorSet(IdleAnimationData.Frames[keyframeAnimIndex + 1].Joints[i]._41, IdleAnimationData.Frames[keyframeAnimIndex + 1].Joints[i]._42, IdleAnimationData.Frames[keyframeAnimIndex + 1].Joints[i]._43, IdleAnimationData.Frames[keyframeAnimIndex + 1].Joints[i]._44);
-	//			XMVECTOR realTimePoint = XMQuaternionSlerp(from, to, (float)ratio);
-	//			SIMPLE_VERTEX sv;
-	//			XMStoreFloat4(&sv.xyzw, realTimePoint);
-	//			realTimeJoints[i] = sv;
-	//		}
-	//
-	//
-	//
-	//
-	//
-	//
-	//
-	//
-	//		//end calculation for slerp to generate real time vector 
-	//		ZeroMemory(&mapResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
-	//		context->Map(debugPointBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapResource);
-	//		memcpy(mapResource.pData, realTimeJoints, sizeof(SIMPLE_VERTEX) * boneCount);
-	//		context->Unmap(debugPointBuffer, 0);
-	//		DrawPoints(realTimeJoints[0], boneCount);
-	//		delete realTimeJoints;
-	//		//DrawPoints(keyFrames[0], boneCount);
-	//	}
-	//	//end keyframes 
+		/*
+		//render bind pose joints
+		static SIMPLE_VERTEX * jointBindPose = new SIMPLE_VERTEX[data.size()];
+		for (size_t i = 0; i < bind_pose.size(); i++)
+		{
+		jointBindPose[i].xyzw = XMFLOAT4(-bind_pose[i].matrix._41, -bind_pose[i].matrix._42, -bind_pose[i].matrix._43, -bind_pose[i].matrix._44);
+		jointBindPose[i].color = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+		}
+		DrawPoints(jointBindPose[0], (int)data.size());
+		//end render bind pose joints
+		*/
+	
+		//keyframes 
+		if (debugPointInit == false)
+		{
+			keyFrameCount = (int)IdleAnimationData.Frames.size();
+			boneCount = (int)IdleAnimationData.Frames[0].Joints.size();
+			animLoopTime = IdleAnimationData.Duration;
+			/*
+			keyFrames = new SIMPLE_VERTEX[keyFrameCount * boneCount]{};
+			for (size_t i = 0; i < (keyFrameCount * boneCount); )
+			for (size_t j = 0; j < keyFrameCount; j++)
+			for (size_t k = 0; k < boneCount; k++)
+			keyFrames[i++].xyzw = XMFLOAT4(IdleAnimationData.Frames[j].Joints[k]._41, IdleAnimationData.Frames[j].Joints[k]._42, IdleAnimationData.Frames[j].Joints[k]._43, IdleAnimationData.Frames[j].Joints[k]._44);
+			*/
+			//find the two key frames you use
+			for (size_t i = 0; i < keyFrameCount - 1; i++)
+				if (currAnimTime > IdleAnimationData.Frames[i].Time)
+					keyframeAnimIndex = (int)i;
+	
+			//end find the two key frames you use
+			//get the time of the two key frames
+			ZeroMemory(twoKeyFrameTimes, sizeof(double) * 2);
+			twoKeyFrameTimes[0] = IdleAnimationData.Frames[keyframeAnimIndex].Time;
+			twoKeyFrameTimes[1] = IdleAnimationData.Frames[keyframeAnimIndex + 1].Time;
+			//end get the time of the two key frames
+			//get ratio representing the real time between the two key frames
+			double ratio = (currAnimTime - twoKeyFrameTimes[0]) / (twoKeyFrameTimes[1] - twoKeyFrameTimes[0]);
+			//end get ratio representing the real time between the two key frames
+			//calculation for slerp to generate real time vector
+			realTimeJoints = new SIMPLE_VERTEX[boneCount];
+			for (size_t i = 0; i < boneCount - 1; i++)
+			{
+				XMVECTOR from = XMVectorSet(IdleAnimationData.Frames[keyframeAnimIndex].Joints[i]._41, IdleAnimationData.Frames[keyframeAnimIndex].Joints[i]._42, IdleAnimationData.Frames[keyframeAnimIndex].Joints[i]._43, IdleAnimationData.Frames[keyframeAnimIndex].Joints[i]._44);
+				XMVECTOR to = XMVectorSet(IdleAnimationData.Frames[keyframeAnimIndex + 1].Joints[i]._41, IdleAnimationData.Frames[keyframeAnimIndex + 1].Joints[i]._42, IdleAnimationData.Frames[keyframeAnimIndex + 1].Joints[i]._43, IdleAnimationData.Frames[keyframeAnimIndex + 1].Joints[i]._44);
+				XMVECTOR realTimePoint = XMQuaternionSlerp(from, to, (float)ratio);
+				SIMPLE_VERTEX sv;
+				XMStoreFloat4(&sv.xyzw, realTimePoint);
+				realTimeJoints[i] = sv;
+			}
+			//end calculation for slerp to generate real time vector
+			pRealTimeJointData = new XMFLOAT4X4[boneCount]{};
+			for (size_t i = 0; i < (size_t)boneCount; i++)
+			{
+				pRealTimeJointData[i]._11 = 1.0f;
+				pRealTimeJointData[i]._22 = 1.0f;
+				pRealTimeJointData[i]._33 = 1.0f;
+				pRealTimeJointData[i]._41 = realTimeJoints[i].xyzw.x;
+				pRealTimeJointData[i]._42 = realTimeJoints[i].xyzw.y;
+				pRealTimeJointData[i]._43 = realTimeJoints[i].xyzw.z;
+				pRealTimeJointData[i]._44 = realTimeJoints[i].xyzw.w;
+	
+			}
+			/*ZeroMemory(&mapResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
+			context->Map(debugPointBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapResource);
+			memcpy(mapResource.pData, &realTimeJoints[0], sizeof(SIMPLE_VERTEX) * boneCount);
+			context->Unmap(debugPointBuffer, 0);*/
+			DrawPoints(realTimeJoints[0], boneCount);
+			delete realTimeJoints;
+		}
+		else
+		{
+			//find the two key frames you use
+			for (size_t i = 0; i < keyFrameCount - 1; i++)
+				if (currAnimTime > IdleAnimationData.Frames[i].Time)
+					keyframeAnimIndex = (int)i;
+	
+			//end find the two key frames you use
+			//get the time of the two key frames
+			ZeroMemory(twoKeyFrameTimes, sizeof(double) * 2);
+			twoKeyFrameTimes[0] = IdleAnimationData.Frames[keyframeAnimIndex].Time;
+			twoKeyFrameTimes[1] = IdleAnimationData.Frames[keyframeAnimIndex + 1].Time;
+			//end get the time of the two key frames
+			//get ratio representing the real time between the two key frames
+			double ratio = (currAnimTime - twoKeyFrameTimes[0]) / (twoKeyFrameTimes[1] - twoKeyFrameTimes[0]);
+			//end get ratio representing the real time between the two key frames
+			//calculation for slerp to generate real time vector 
+			realTimeJoints = new SIMPLE_VERTEX[boneCount];
+			for (size_t i = 0; i < boneCount - 1; i++)
+			{
+				XMVECTOR from = XMVectorSet(IdleAnimationData.Frames[keyframeAnimIndex].Joints[i]._41, IdleAnimationData.Frames[keyframeAnimIndex].Joints[i]._42, IdleAnimationData.Frames[keyframeAnimIndex].Joints[i]._43, IdleAnimationData.Frames[keyframeAnimIndex].Joints[i]._44);
+				XMVECTOR to = XMVectorSet(IdleAnimationData.Frames[keyframeAnimIndex + 1].Joints[i]._41, IdleAnimationData.Frames[keyframeAnimIndex + 1].Joints[i]._42, IdleAnimationData.Frames[keyframeAnimIndex + 1].Joints[i]._43, IdleAnimationData.Frames[keyframeAnimIndex + 1].Joints[i]._44);
+				XMVECTOR realTimePoint = XMQuaternionSlerp(from, to, (float)ratio);
+				SIMPLE_VERTEX sv;
+				XMStoreFloat4(&sv.xyzw, realTimePoint);
+				realTimeJoints[i] = sv;
+			}
+	
+	
+	
+	
+	
+	
+	
+	
+			//end calculation for slerp to generate real time vector 
+			ZeroMemory(&mapResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
+			context->Map(debugPointBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapResource);
+			memcpy(mapResource.pData, realTimeJoints, sizeof(SIMPLE_VERTEX) * boneCount);
+			context->Unmap(debugPointBuffer, 0);
+			DrawPoints(realTimeJoints[0], boneCount);
+			delete realTimeJoints;
+			//DrawPoints(keyFrames[0], boneCount);
+		}
+		//end keyframes 
 #pragma endregion 
 
 #pragma region debug bones

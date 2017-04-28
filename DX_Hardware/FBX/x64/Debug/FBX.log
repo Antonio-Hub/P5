@@ -1,7 +1,3 @@
-﻿  stdafx.cpp
-  dllmain.cpp
-  FBX.cpp
-c:\users\antonio-rog\desktop\p5\dx_hardware\fbx\fbx.cpp(530): warning C4101: 'pSkinVerts': unreferenced local variable
-     Creating library C:\Users\Antonio-ROG\Desktop\P5\DX_Hardware\x64\Debug\FBX.lib and object C:\Users\Antonio-ROG\Desktop\P5\DX_Hardware\x64\Debug\FBX.exp
+﻿  FBX.cpp
   FBX.vcxproj -> C:\Users\Antonio-ROG\Desktop\P5\DX_Hardware\x64\Debug\FBX.dll
   FBX.vcxproj -> C:\Users\Antonio-ROG\Desktop\P5\DX_Hardware\x64\Debug\FBX.pdb (Full PDB)

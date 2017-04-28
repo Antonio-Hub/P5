@@ -424,7 +424,7 @@ void DepthFirstSearch(FbxNode * pNode, vector<my_fbx_joint> & Container, int Par
 		DepthFirstSearch(pNode->GetChild((int)i), Container, Parent_Index);
 			
 }
-__declspec(dllexport) void function(char * fileName, char * outFileNameMesh, char * outFileNameBone, char * outFileNameAnimations, vector<joint> & Bind_Pose, anim_clip & Animation)
+__declspec(dllexport) void function(char * fileName, char * outFileNameMesh, char * outFileNameBone, char * outFileNameAnimations, vector<joint> & Bind_Pose, anim_clip & Animation, vector<vert_pos_skinned> & FileMesh)
 {
 
 	FbxManager * pManager = FbxManager::Create();
@@ -519,7 +519,18 @@ __declspec(dllexport) void function(char * fileName, char * outFileNameMesh, cha
 		pMesh = pNode->GetMesh();
 	} while (!pMesh);
 
+	unsigned int ctrlPointCount = pMesh->GetControlPointsCount();
+	vector<vert_pos_skinned> MeshVerts;
 
+	for (unsigned int i = 0; i < ctrlPointCount; i++)
+	{
+		vert_pos_skinned* currCtrlPoint = new vert_pos_skinned();
+		currCtrlPoint->pos.w = 1.0f;
+		currCtrlPoint->pos.x = (float)pMesh->GetControlPointAt(i).mData[0];
+		currCtrlPoint->pos.y = (float)pMesh->GetControlPointAt(i).mData[1];
+		currCtrlPoint->pos.z = (float)pMesh->GetControlPointAt(i).mData[2];
+		MeshVerts.push_back(*currCtrlPoint);
+	}
 
 
 	int DeformerCount = pMesh->GetDeformerCount();
@@ -527,18 +538,26 @@ __declspec(dllexport) void function(char * fileName, char * outFileNameMesh, cha
 	//FbxDeformer::EDeformerType DeformerType = Deformer->GetDeformerType();
 	FbxSkin * pSkin = (FbxSkin*)pMesh->GetDeformer(0);
 	int ClusterCount = pSkin->GetClusterCount();
-	vert_pos_skinned * pSkinVerts;
+	FbxNode * pIndexNode = nullptr;
 	for (size_t ClusterIndex = 0; ClusterIndex < ClusterCount; ClusterIndex++)
 	{
 		FbxCluster *pCluster = pSkin->GetCluster((int)ClusterIndex);
 		FbxNode * pNode = pCluster->GetLink();
-		arrTransforms[ClusterIndex];
+		count = 0;
+		pIndexNode = nullptr;
+		do
+		{
+			pIndexNode = pBindPose->GetNode(count++);
+		} while (pNode != pIndexNode);
+
+
 		int ControlPointIndicesCount = pCluster->GetControlPointIndicesCount();
+
+		double * pWeights = pCluster->GetControlPointWeights();
+		int * pControllPointIndices = pCluster->GetControlPointIndices();
 		for (size_t ControlPointIndex = 0; ControlPointIndex < ControlPointIndicesCount; ControlPointIndex++)
 		{
-			double * pWeights = pCluster->GetControlPointWeights();
-			int * pControllPointIndices = pCluster->GetControlPointIndices();
-
+			pWeights[pControllPointIndices[ControlPointIndex]];
 
 		}
 		
