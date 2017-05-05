@@ -16,13 +16,19 @@ cbuffer THIS_IS_VRAM : register( b0 )
 {
 	matrix camView;
 	matrix camProj;
-	matrix modelpos;
+	matrix modelPos;
+};
+
+cbuffer THIS_IS_ANIMATION_VRAM : register(b1)
+{
+	matrix inverseBindPose[128];
+	matrix realTimePose[128];
 };
 
 OUTPUT_VERTEX main( INPUT_VERTEX fromVertexBuffer )
 {
 	float4 pos = float4(fromVertexBuffer.coordinate.xyz,1.0f);
-	pos = mul(pos, modelpos);
+	pos = mul(pos, modelPos);
 	pos = mul(pos, camView);
 	pos = mul(pos, camProj);
 

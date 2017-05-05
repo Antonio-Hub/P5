@@ -529,6 +529,11 @@ __declspec(dllexport) void function(char * fileName, char * outFileNameMesh, cha
 		currCtrlPoint->pos.x = (float)pMesh->GetControlPointAt(i).mData[0];
 		currCtrlPoint->pos.y = (float)pMesh->GetControlPointAt(i).mData[1];
 		currCtrlPoint->pos.z = (float)pMesh->GetControlPointAt(i).mData[2];
+		currCtrlPoint->joints[0] = 0;
+		currCtrlPoint->joints[1] = 0;
+		currCtrlPoint->joints[2] = 0;
+		currCtrlPoint->joints[3] = 0;
+
 		MeshVerts.push_back(*currCtrlPoint);
 	}
 
@@ -547,9 +552,10 @@ __declspec(dllexport) void function(char * fileName, char * outFileNameMesh, cha
 		pIndexNode = nullptr;
 		do
 		{
-			pIndexNode = pBindPose->GetNode(count++);
+			pIndexNode = arrBindPose[count++].pNode;
+			//pIndexNode = pBindPose->GetNode(count++);
 		} while (pNode != pIndexNode);
-
+		count--;
 
 		int ControlPointIndicesCount = pCluster->GetControlPointIndicesCount();
 
@@ -557,8 +563,8 @@ __declspec(dllexport) void function(char * fileName, char * outFileNameMesh, cha
 		int * pControllPointIndices = pCluster->GetControlPointIndices();
 		for (size_t ControlPointIndex = 0; ControlPointIndex < ControlPointIndicesCount; ControlPointIndex++)
 		{
-			pWeights[pControllPointIndices[ControlPointIndex]];
-
+	//		pWeights[pControllPointIndices[ControlPointIndex]];
+//			MeshVerts[pControllPointIndices[ControlPointIndex]].joints;
 		}
 		
 	}
