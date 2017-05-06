@@ -98,26 +98,18 @@ private:
 	//model animation data
 	vector<joint> data;
 	anim_clip IdleAnimationData;
-	XMFLOAT4X4 * pRealTimeJointPos = nullptr;
-	////////////////////////////////////////////////////
 	Skeleton * mSkeleton = nullptr;
 	unsigned int triCount = 0;
 	vector<unsigned int> triIndices;
 	vector<BlendingVertex> verts;
-	VertexBlending ** blendingWeights = nullptr;
-	XMFLOAT4 * meshAnimationOffset = nullptr;
-	XMFLOAT4 * jointAnimationOffset = nullptr;
 	vector<Bone> bind_pose;
 	SIMPLE_VERTEX * realTimeModel = nullptr;
-	SIMPLE_VERTEX * realTimeJoints = nullptr;
-	SIMPLE_VERTEX * keyFrames = nullptr;
 	unsigned int keyFrameCount = 0;
 	unsigned int boneCount = 0;
 	double animLoopTime = 0.0f;
 	double currAnimTime = 0.0f;
 	int keyframeAnimIndex = 0;
 	double twoKeyFrameTimes[2]{};
-	////////////////////////////////////////////////////
 
 	//ground plane
 	ID3D11Buffer * groundvertbuffer = NULL;
@@ -129,22 +121,19 @@ private:
 	unsigned int DebugPointCount = 128;
 	SIMPLE_VERTEX DebugPointData[128]{};
 	ID3D11Buffer * pDebugLineBuffer = nullptr;
-	ID3D11Buffer * debugPointBuffer = nullptr;
-	ID3D11Buffer * debugLineBuffer = nullptr;
-	bool debugPointInit = false;
-	bool debugLineInit = false;
+	unsigned int DebugLineCount = 128;
+	SIMPLE_VERTEX DebugLineData[128]{};
 
 	ID3D11InputLayout * layout = NULL;
 
-	ID3D11VertexShader*     vertexshader = NULL;
-	ID3D11PixelShader*      pixelshader = NULL;
+	ID3D11VertexShader * vertexshader = NULL;
+	ID3D11PixelShader * pixelshader = NULL;
 
 	ID3D11Buffer * constBuffer = NULL;
 	ID3D11Buffer * modelAnimationConstBuffer = nullptr;
 
 	VRAM send_to_ram{};
 	ANIMATION_VRAM send_to_ram2{};
-	//XMFLOAT4X4 * pRealTimeJointData = nullptr;
 
 	XMFLOAT4X4 camera;
 
@@ -155,9 +144,8 @@ private:
 
 DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 {
+	Time.Restart();
 #pragma region wind
-	// ****************** BEGIN WARNING ***********************// 
-	// WINDOWS CODE, I DON'T TEACH THIS YOU MUST KNOW IT ALREADY! 
 	application = hinst;
 	appWndProc = proc;
 
@@ -180,12 +168,8 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 		NULL, NULL, application, this);
 
 	ShowWindow(window, SW_SHOW);
-	//********************* END WARNING ************************//
 #pragma endregion
-	Time.Restart();
-	currAnimTime = 0.01f;
-	D3D11_BUFFER_DESC bufferdescription;
-	D3D11_SUBRESOURCE_DATA InitData;
+
 #pragma region camera model
 	//camera data
 	//static const XMVECTORF32 eye = { 0.0f, 0.0f, -5.5f, 0.0f };
@@ -275,7 +259,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 #pragma endregion
 
 #pragma region fbx loading
-	char file[]{ "Teddy_Idle.fbx" };
+	char file[]{ "Box_Idle.fbx" };
 	char mesh[]{ "mesh.bin" };
 	char bone[]{ "bone.bin" };
 	char animation[]{ "animation.bin" };
@@ -286,40 +270,17 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	// 0.0 0.0 1.0 0.0
 	// x   y   z   w
 	function(file, mesh, bone, animation, data, IdleAnimationData, FileMesh);
-
 	mSkeleton = new Skeleton();
 	functionality(mesh, bone, animation, triCount, triIndices, verts, mSkeleton, bind_pose);
 
-	for (size_t i = 0; i < data.size(); i++)
-	{
-		DebugPointData[i].xyzw.x = data[i].global_xform._41;
-		DebugPointData[i].xyzw.y = data[i].global_xform._42;
-		DebugPointData[i].xyzw.z = data[i].global_xform._43;
-		DebugPointData[i].xyzw.w = 1.0f;
-	}
-
-	//realTimeJoints = new SIMPLE_VERTEX[(int)IdleAnimationData.Frames[0].Joints.size()]{};
-	//pRealTimeJointPos = new XMFLOAT4X4[(int)IdleAnimationData.Frames[0].Joints.size()]{};
-
-	//XMMATRIX * pInverseMatrix_Bind_Pose = new XMMATRIX[boneCount]{};
-	//for (size_t i = 0; i < boneCount; i++)
-	//{
-	//	pInverseMatrix_Bind_Pose[i] = XMMatrixSet(
-	//		data[i].global_xform._11, data[i].global_xform._12, data[i].global_xform._13, data[i].global_xform._14,
-	//		data[i].global_xform._21, data[i].global_xform._22, data[i].global_xform._23, data[i].global_xform._24,
-	//		data[i].global_xform._31, data[i].global_xform._32, data[i].global_xform._33, data[i].global_xform._34,
-	//		data[i].global_xform._41, data[i].global_xform._42, data[i].global_xform._43, data[i].global_xform._44);
-	//	XMStoreFloat4x4(&send_to_ram2.InverseBindPose[i], XMMatrixTranspose(XMMatrixInverse(NULL, pInverseMatrix_Bind_Pose[i])));
-	//}
 #pragma endregion
 	
-#pragma region teddy model buffers
-
+#pragma region buffers
+	D3D11_BUFFER_DESC bufferdescription;
+	D3D11_SUBRESOURCE_DATA InitData;
+//teddy
 	modelVertCount = (unsigned int)verts.size();
 	realTimeModel = new SIMPLE_VERTEX[modelVertCount];
-	blendingWeights = new VertexBlending*[modelVertCount];
-	meshAnimationOffset = new XMFLOAT4[modelVertCount];
-	jointAnimationOffset = new XMFLOAT4[modelVertCount];
 	float modelColor[4]{ 1.0f, 1.0f, 1.0f, 0.0f };
 	for (size_t i = 0; i < modelVertCount; i++)
 	{
@@ -339,12 +300,6 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 		realTimeModel[i].weights.y = (float)verts[i].mVertexBlendingInfos[1].mBlendWeight;
 		realTimeModel[i].weights.z = (float)verts[i].mVertexBlendingInfos[2].mBlendWeight;
 		realTimeModel[i].weights.w = (float)verts[i].mVertexBlendingInfos[3].mBlendWeight;
-		//blendingWeights[i] = new VertexBlending[4];
-		//for (size_t j = 0; j < 4; j++)
-		//{
-		//	blendingWeights[i][j].mBlendingIndex = verts[i].mVertexBlendingInfos[j].mBlendingIndex;
-		//	blendingWeights[i][j].mBlendWeight = verts[i].mVertexBlendingInfos[j].mBlendWeight;
-		//}
 	}
 
 
@@ -378,9 +333,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	InitData.pSysMem = modelIndex;
 	device->CreateBuffer(&bufferdescription, &InitData, &modelindexbuffer);
 
-#pragma endregion
-
-#pragma region ground plane model buffers
+//ground plane
 	groundindexCount = 6;
 	SIMPLE_VERTEX groundPlane[4]{};
 	groundPlane[0].xyzw = XMFLOAT4(10.0f, 0.0f, 10.0f, 0);
@@ -419,9 +372,14 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	InitData.pSysMem = groundPlaneindex;
 	device->CreateBuffer(&bufferdescription, &InitData, &groundindexbuffer);
 
-#pragma endregion
-
-#pragma region debug buffer
+//debug buffer
+	for (size_t i = 0; i < data.size(); i++)
+	{
+		DebugPointData[i].xyzw.x = data[i].global_xform._41;
+		DebugPointData[i].xyzw.y = data[i].global_xform._42;
+		DebugPointData[i].xyzw.z = data[i].global_xform._43;
+		DebugPointData[i].xyzw.w = 1.0f;
+	}
 	ZeroMemory(&bufferdescription, sizeof(D3D11_BUFFER_DESC));
 	bufferdescription.Usage = D3D11_USAGE_DYNAMIC;
 	bufferdescription.ByteWidth = (UINT)(sizeof(SIMPLE_VERTEX) * DebugPointCount);
@@ -433,26 +391,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	InitData.pSysMem = DebugPointData;
 	device->CreateBuffer(&bufferdescription, &InitData, &pDebugPointBuffer);
 
-#pragma endregion
-
-#pragma region create shaders
-	device->CreateVertexShader(Trivial_VS, sizeof(Trivial_VS), NULL, &vertexshader);
-	device->CreatePixelShader(Trivial_PS, sizeof(Trivial_PS), NULL, &pixelshader);
-#pragma endregion
-
-#pragma region imput layout
-	D3D11_INPUT_ELEMENT_DESC vertlayout[] =
-	{
-		"POSITION", 0,DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0,
-		"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0,
-		"INDEX", 0,DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0,
-		"WEIGHT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0,
-	};
-	UINT numElements = ARRAYSIZE(vertlayout);
-	device->CreateInputLayout(vertlayout, numElements, Trivial_VS, sizeof(Trivial_VS), &layout);
-#pragma endregion
-
-#pragma region const buff
+//const buff
 	ZeroMemory(&bufferdescription, sizeof(D3D11_BUFFER_DESC));
 	bufferdescription.Usage = D3D11_USAGE_DYNAMIC;
 	bufferdescription.ByteWidth = sizeof(VRAM);
@@ -476,6 +415,22 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	InitData.pSysMem = &send_to_ram2;
 	device->CreateBuffer(&bufferdescription, &InitData, &modelAnimationConstBuffer);
 #pragma endregion
+
+#pragma region shaders and imput layout
+	device->CreateVertexShader(Trivial_VS, sizeof(Trivial_VS), NULL, &vertexshader);
+	device->CreatePixelShader(Trivial_PS, sizeof(Trivial_PS), NULL, &pixelshader);
+ 
+	D3D11_INPUT_ELEMENT_DESC vertlayout[] =
+	{
+		"POSITION", 0,DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0,
+		"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0,
+		"INDEX", 0,DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0,
+		"WEIGHT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0,
+	};
+	UINT numElements = ARRAYSIZE(vertlayout);
+	device->CreateInputLayout(vertlayout, numElements, Trivial_VS, sizeof(Trivial_VS), &layout);
+#pragma endregion
+
 }
 
 bool DEMO_APP::Run()
@@ -484,7 +439,7 @@ bool DEMO_APP::Run()
 	Time.Signal();
 	currAnimTime += Time.SmoothDelta();
 	if (currAnimTime > animLoopTime)
-		currAnimTime = 0.0000000000;
+		currAnimTime = 0.0;
 #pragma endregion
 
 #pragma region update
@@ -560,13 +515,6 @@ bool DEMO_APP::Run()
 	keyFrameCount = (int)IdleAnimationData.Frames.size();
 	boneCount = (int)IdleAnimationData.Frames[0].Joints.size();
 	animLoopTime = IdleAnimationData.Duration;
-	/*
-	keyFrames = new SIMPLE_VERTEX[keyFrameCount * boneCount]{};
-	for (size_t i = 0; i < (keyFrameCount * boneCount); )
-	for (size_t j = 0; j < keyFrameCount; j++)
-	for (size_t k = 0; k < boneCount; k++)
-	keyFrames[i++].xyzw = XMFLOAT4(IdleAnimationData.Frames[j].Joints[k]._41, IdleAnimationData.Frames[j].Joints[k]._42, IdleAnimationData.Frames[j].Joints[k]._43, IdleAnimationData.Frames[j].Joints[k]._44);
-	*/
 
 ////////////////////find current times animation index///////////////////
 	for (size_t i = 0; i < keyFrameCount; i++)
@@ -632,65 +580,6 @@ bool DEMO_APP::Run()
 	memcpy(mapResource.pData, &send_to_ram2, sizeof(ANIMATION_VRAM));
 	context->Unmap(modelAnimationConstBuffer, 0);
 
-
-	/*
-	XMMATRIX * pMatrixReal_Time_Joint = new XMMATRIX[boneCount]{};
-	for (size_t i = 0; i < (size_t)boneCount; i++)
-	{
-		pMatrixReal_Time_Joint[i] = XMMatrixSet(
-			1.0f, 0.0f, 0.0f, realTimeJoints[i].xyzw.x,
-			0.0f, 1.0f, 0.0f, realTimeJoints[i].xyzw.y,
-			0.0f, 0.0f, 1.0f, realTimeJoints[i].xyzw.z,
-			0.0f, 0.0f, 0.0f, realTimeJoints[i].xyzw.w);
-	}
-	XMMATRIX * pInverseMatrix_Bind_Pose = new XMMATRIX[boneCount]{};
-	for (size_t i = 0; i < boneCount; i++)
-	{
-		pInverseMatrix_Bind_Pose[i] = XMMatrixSet(
-			data[i].global_xform._11, data[i].global_xform._12, data[i].global_xform._13, data[i].global_xform._14,
-			data[i].global_xform._21, data[i].global_xform._22, data[i].global_xform._23, data[i].global_xform._24,
-			data[i].global_xform._31, data[i].global_xform._32, data[i].global_xform._33, data[i].global_xform._34,
-			data[i].global_xform._41, data[i].global_xform._42, data[i].global_xform._43, data[i].global_xform._44);
-		pInverseMatrix_Bind_Pose[i] = XMMatrixInverse(NULL, pInverseMatrix_Bind_Pose[i]);
-	}
-	XMMATRIX m = XMMatrixIdentity();
-	for (size_t i = 0; i < modelVertCount; i++)
-	{
-		m = XMMatrixIdentity();
-		if (realTimeModel[i].weights.w > 0.0f)
-			m *= pInverseMatrix_Bind_Pose[(int)realTimeModel[i].index.w] * pMatrixReal_Time_Joint[(int)realTimeModel[i].index.w] * realTimeModel[i].weights.w;
-		if (realTimeModel[i].weights.x > 0.0f)
-			m *= pInverseMatrix_Bind_Pose[(int)realTimeModel[i].index.x] * pMatrixReal_Time_Joint[(int)realTimeModel[i].index.x] * realTimeModel[i].weights.x;
-		if (realTimeModel[i].weights.y > 0.0f)
-			m *= pInverseMatrix_Bind_Pose[(int)realTimeModel[i].index.y] * pMatrixReal_Time_Joint[(int)realTimeModel[i].index.y] * realTimeModel[i].weights.y;
-		if (realTimeModel[i].weights.z > 0.0f)
-			m *= pInverseMatrix_Bind_Pose[(int)realTimeModel[i].index.z] * pMatrixReal_Time_Joint[(int)realTimeModel[i].index.z] * realTimeModel[i].weights.z;
-		XMFLOAT4X4 Matrix{};
-		XMStoreFloat4x4(&Matrix, m);
-		realTimeModel[i].xyzw.x = Matrix._14;
-		realTimeModel[i].xyzw.y = Matrix._24;
-		realTimeModel[i].xyzw.z = Matrix._34;
-		realTimeModel[i].xyzw.w = Matrix._44;
-	}
-	
-
-	
-	if (debugPointInit == true)
-	{
-		ZeroMemory(&mapResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
-		context->Map(debugPointBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapResource);
-		memcpy(mapResource.pData, &realTimeJoints[0], sizeof(SIMPLE_VERTEX) * boneCount);
-		context->Unmap(debugPointBuffer, 0);
-	}
-	DrawPoints(realTimeJoints[0], boneCount);
-
-
-	ZeroMemory(&mapResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
-	context->Map(modelvertbuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapResource);
-	memcpy(mapResource.pData, &realTimeModel[0], sizeof(SIMPLE_VERTEX) * modelVertCount);
-	context->Unmap(modelvertbuffer, 0);
-	*/
-
 	context->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	context->IASetVertexBuffers(0, 1, &modelvertbuffer, &stride, &offset);
 	context->IASetIndexBuffer(modelindexbuffer, DXGI_FORMAT_R32_UINT, offset);
@@ -720,302 +609,48 @@ bool DEMO_APP::Run()
 	context->DrawIndexed(groundindexCount, 0, 0);
 #pragma endregion
 
-#pragma region debug joints
-	/*
-	//render bind pose joints
-	static SIMPLE_VERTEX * jointBindPose = new SIMPLE_VERTEX[data.size()];
-	for (size_t i = 0; i < bind_pose.size(); i++)
-	{
-	jointBindPose[i].xyzw = XMFLOAT4(-bind_pose[i].matrix._41, -bind_pose[i].matrix._42, -bind_pose[i].matrix._43, -bind_pose[i].matrix._44);
-	jointBindPose[i].color = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
-	}
-	DrawPoints(jointBindPose[0], (int)data.size());
-	//end render bind pose joints
-	*/
-
-	//keyframes 
-	//if (debugPointInit == false)
-	//{
-	//	keyFrameCount = (int)IdleAnimationData.Frames.size();
-	//	boneCount = (int)IdleAnimationData.Frames[0].Joints.size();
-	//	animLoopTime = IdleAnimationData.Duration;
-	//	/*
-	//	keyFrames = new SIMPLE_VERTEX[keyFrameCount * boneCount]{};
-	//	for (size_t i = 0; i < (keyFrameCount * boneCount); )
-	//	for (size_t j = 0; j < keyFrameCount; j++)
-	//	for (size_t k = 0; k < boneCount; k++)
-	//	keyFrames[i++].xyzw = XMFLOAT4(IdleAnimationData.Frames[j].Joints[k]._41, IdleAnimationData.Frames[j].Joints[k]._42, IdleAnimationData.Frames[j].Joints[k]._43, IdleAnimationData.Frames[j].Joints[k]._44);
-	//	*/
-	//	//find the two key frames you use
-	//	for (size_t i = 0; i < keyFrameCount - 1; i++)
-	//		if (currAnimTime > IdleAnimationData.Frames[i].Time)
-	//			keyframeAnimIndex = (int)i;
-
-	//	//end find the two key frames you use
-	//	//get the time of the two key frames
-	//	ZeroMemory(twoKeyFrameTimes, sizeof(double) * 2);
-	//	twoKeyFrameTimes[0] = IdleAnimationData.Frames[keyframeAnimIndex].Time;
-	//	twoKeyFrameTimes[1] = IdleAnimationData.Frames[keyframeAnimIndex + 1].Time;
-	//	//end get the time of the two key frames
-	//	//get ratio representing the real time between the two key frames
-	//	double ratio = (currAnimTime - twoKeyFrameTimes[0]) / (twoKeyFrameTimes[1] - twoKeyFrameTimes[0]);
-	//	//end get ratio representing the real time between the two key frames
-	//	//calculation for slerp to generate real time vector
-	//	realTimeJoints = new SIMPLE_VERTEX[boneCount];
-	//	for (size_t i = 0; i < boneCount - 1; i++)
-	//	{
-	//		XMVECTOR from = XMVectorSet(IdleAnimationData.Frames[keyframeAnimIndex].Joints[i]._41, IdleAnimationData.Frames[keyframeAnimIndex].Joints[i]._42, IdleAnimationData.Frames[keyframeAnimIndex].Joints[i]._43, IdleAnimationData.Frames[keyframeAnimIndex].Joints[i]._44);
-	//		XMVECTOR to = XMVectorSet(IdleAnimationData.Frames[keyframeAnimIndex + 1].Joints[i]._41, IdleAnimationData.Frames[keyframeAnimIndex + 1].Joints[i]._42, IdleAnimationData.Frames[keyframeAnimIndex + 1].Joints[i]._43, IdleAnimationData.Frames[keyframeAnimIndex + 1].Joints[i]._44);
-	//		XMVECTOR realTimePoint = XMQuaternionSlerp(from, to, (float)ratio);
-	//		SIMPLE_VERTEX sv;
-	//		XMStoreFloat4(&sv.xyzw, realTimePoint);
-	//		realTimeJoints[i] = sv;
-	//	}
-	//	//end calculation for slerp to generate real time vector
-	//	pRealTimeJointData = new XMFLOAT4X4[boneCount]{};
-	//	for (size_t i = 0; i < (size_t)boneCount; i++)
-	//	{
-	//		pRealTimeJointData[i]._11 = 1.0f;
-	//		pRealTimeJointData[i]._22 = 1.0f;
-	//		pRealTimeJointData[i]._33 = 1.0f;
-	//		pRealTimeJointData[i]._41 = realTimeJoints[i].xyzw.x;
-	//		pRealTimeJointData[i]._42 = realTimeJoints[i].xyzw.y;
-	//		pRealTimeJointData[i]._43 = realTimeJoints[i].xyzw.z;
-	//		pRealTimeJointData[i]._44 = realTimeJoints[i].xyzw.w;
-
-	//	}
-	//	/*ZeroMemory(&mapResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
-	//	context->Map(debugPointBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapResource);
-	//	memcpy(mapResource.pData, &realTimeJoints[0], sizeof(SIMPLE_VERTEX) * boneCount);
-	//	context->Unmap(debugPointBuffer, 0);*/
-	//	DrawPoints(realTimeJoints[0], boneCount);
-	//	delete realTimeJoints;
-	//}
-	//else
-	//{
-	//	//find the two key frames you use
-	//	for (size_t i = 0; i < keyFrameCount - 1; i++)
-	//		if (currAnimTime > IdleAnimationData.Frames[i].Time)
-	//			keyframeAnimIndex = (int)i;
-
-	//	//end find the two key frames you use
-	//	//get the time of the two key frames
-	//	ZeroMemory(twoKeyFrameTimes, sizeof(double) * 2);
-	//	twoKeyFrameTimes[0] = IdleAnimationData.Frames[keyframeAnimIndex].Time;
-	//	twoKeyFrameTimes[1] = IdleAnimationData.Frames[keyframeAnimIndex + 1].Time;
-	//	//end get the time of the two key frames
-	//	//get ratio representing the real time between the two key frames
-	//	double ratio = (currAnimTime - twoKeyFrameTimes[0]) / (twoKeyFrameTimes[1] - twoKeyFrameTimes[0]);
-	//	//end get ratio representing the real time between the two key frames
-	//	//calculation for slerp to generate real time vector 
-	//	realTimeJoints = new SIMPLE_VERTEX[boneCount];
-	//	for (size_t i = 0; i < boneCount - 1; i++)
-	//	{
-	//		XMVECTOR from = XMVectorSet(IdleAnimationData.Frames[keyframeAnimIndex].Joints[i]._41, IdleAnimationData.Frames[keyframeAnimIndex].Joints[i]._42, IdleAnimationData.Frames[keyframeAnimIndex].Joints[i]._43, IdleAnimationData.Frames[keyframeAnimIndex].Joints[i]._44);
-	//		XMVECTOR to = XMVectorSet(IdleAnimationData.Frames[keyframeAnimIndex + 1].Joints[i]._41, IdleAnimationData.Frames[keyframeAnimIndex + 1].Joints[i]._42, IdleAnimationData.Frames[keyframeAnimIndex + 1].Joints[i]._43, IdleAnimationData.Frames[keyframeAnimIndex + 1].Joints[i]._44);
-	//		XMVECTOR realTimePoint = XMQuaternionSlerp(from, to, (float)ratio);
-	//		SIMPLE_VERTEX sv;
-	//		XMStoreFloat4(&sv.xyzw, realTimePoint);
-	//		realTimeJoints[i] = sv;
-	//	}
-
-
-
-
-
-
-
-
-	//	//end calculation for slerp to generate real time vector 
-	//	ZeroMemory(&mapResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
-	//	context->Map(debugPointBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapResource);
-	//	memcpy(mapResource.pData, realTimeJoints, sizeof(SIMPLE_VERTEX) * boneCount);
-	//	context->Unmap(debugPointBuffer, 0);
-	//	DrawPoints(realTimeJoints[0], boneCount);
-	//	delete realTimeJoints;
-	//	//DrawPoints(keyFrames[0], boneCount);
-	//}
-	//end keyframes 
-#pragma endregion 
-#pragma region debug bones
-
-	//static SIMPLE_VERTEX * boneBindPose = new SIMPLE_VERTEX[256];
-	////one
-	//boneBindPose[0].xyzw = XMFLOAT4(-bind_pose[1].matrix._41, -bind_pose[1].matrix._42, -bind_pose[1].matrix._43, -bind_pose[1].matrix._44);
-	//boneBindPose[1].xyzw = XMFLOAT4(-bind_pose[2].matrix._41, -bind_pose[2].matrix._42, -bind_pose[2].matrix._43, -bind_pose[2].matrix._44);
-	////two
-	//boneBindPose[2].xyzw = XMFLOAT4(-bind_pose[2].matrix._41, -bind_pose[2].matrix._42, -bind_pose[2].matrix._43, -bind_pose[2].matrix._44);
-	//boneBindPose[3].xyzw = XMFLOAT4(-bind_pose[3].matrix._41, -bind_pose[3].matrix._42, -bind_pose[3].matrix._43, -bind_pose[3].matrix._44);
-	////three
-	//boneBindPose[4].xyzw = XMFLOAT4(-bind_pose[3].matrix._41, -bind_pose[3].matrix._42, -bind_pose[3].matrix._43, -bind_pose[3].matrix._44);
-	//boneBindPose[5].xyzw = XMFLOAT4(-bind_pose[4].matrix._41, -bind_pose[4].matrix._42, -bind_pose[4].matrix._43, -bind_pose[4].matrix._44);
-	////four
-	//boneBindPose[6].xyzw = XMFLOAT4(-bind_pose[4].matrix._41, -bind_pose[4].matrix._42, -bind_pose[4].matrix._43, -bind_pose[4].matrix._44);
-	//boneBindPose[7].xyzw = XMFLOAT4(-bind_pose[5].matrix._41, -bind_pose[5].matrix._42, -bind_pose[5].matrix._43, -bind_pose[5].matrix._44);
-	////five
-	//boneBindPose[8].xyzw = XMFLOAT4(-bind_pose[3].matrix._41, -bind_pose[3].matrix._42, -bind_pose[3].matrix._43, -bind_pose[3].matrix._44);
-	//boneBindPose[9].xyzw = XMFLOAT4(-bind_pose[6].matrix._41, -bind_pose[6].matrix._42, -bind_pose[6].matrix._43, -bind_pose[6].matrix._44);
-	////six
-	//boneBindPose[10].xyzw = XMFLOAT4(-bind_pose[6].matrix._41, -bind_pose[6].matrix._42, -bind_pose[6].matrix._43, -bind_pose[6].matrix._44);
-	//boneBindPose[11].xyzw = XMFLOAT4(-bind_pose[7].matrix._41, -bind_pose[7].matrix._42, -bind_pose[7].matrix._43, -bind_pose[7].matrix._44);
-	////sevin
-	//boneBindPose[12].xyzw = XMFLOAT4(-bind_pose[7].matrix._41, -bind_pose[7].matrix._42, -bind_pose[7].matrix._43, -bind_pose[7].matrix._44);
-	//boneBindPose[13].xyzw = XMFLOAT4(-bind_pose[8].matrix._41, -bind_pose[8].matrix._42, -bind_pose[8].matrix._43, -bind_pose[8].matrix._44);
-	////eight
-	//boneBindPose[14].xyzw = XMFLOAT4(-bind_pose[8].matrix._41, -bind_pose[8].matrix._42, -bind_pose[8].matrix._43, -bind_pose[8].matrix._44);
-	//boneBindPose[15].xyzw = XMFLOAT4(-bind_pose[9].matrix._41, -bind_pose[9].matrix._42, -bind_pose[9].matrix._43, -bind_pose[9].matrix._44);
-	////nine
-	//boneBindPose[16].xyzw = XMFLOAT4(-bind_pose[9].matrix._41, -bind_pose[9].matrix._42, -bind_pose[9].matrix._43, -bind_pose[9].matrix._44);
-	//boneBindPose[17].xyzw = XMFLOAT4(-bind_pose[10].matrix._41, -bind_pose[10].matrix._42, -bind_pose[10].matrix._43, -bind_pose[10].matrix._44);
-	////ten
-	//boneBindPose[18].xyzw = XMFLOAT4(-bind_pose[10].matrix._41, -bind_pose[10].matrix._42, -bind_pose[10].matrix._43, -bind_pose[10].matrix._44);
-	//boneBindPose[19].xyzw = XMFLOAT4(-bind_pose[11].matrix._41, -bind_pose[11].matrix._42, -bind_pose[11].matrix._43, -bind_pose[11].matrix._44);
-	////eleven
-	//boneBindPose[20].xyzw = XMFLOAT4(-bind_pose[10].matrix._41, -bind_pose[10].matrix._42, -bind_pose[10].matrix._43, -bind_pose[10].matrix._44);
-	//boneBindPose[21].xyzw = XMFLOAT4(-bind_pose[12].matrix._41, -bind_pose[12].matrix._42, -bind_pose[12].matrix._43, -bind_pose[12].matrix._44);
-	////twelve
-	//boneBindPose[22].xyzw = XMFLOAT4(-bind_pose[3].matrix._41, -bind_pose[3].matrix._42, -bind_pose[3].matrix._43, -bind_pose[3].matrix._44);
-	//boneBindPose[23].xyzw = XMFLOAT4(-bind_pose[13].matrix._41, -bind_pose[13].matrix._42, -bind_pose[13].matrix._43, -bind_pose[13].matrix._44);
-	////thirteen
-	//boneBindPose[24].xyzw = XMFLOAT4(-bind_pose[13].matrix._41, -bind_pose[13].matrix._42, -bind_pose[13].matrix._43, -bind_pose[13].matrix._44);
-	//boneBindPose[25].xyzw = XMFLOAT4(-bind_pose[14].matrix._41, -bind_pose[14].matrix._42, -bind_pose[14].matrix._43, -bind_pose[14].matrix._44);
-	////fourteen
-	//boneBindPose[26].xyzw = XMFLOAT4(-bind_pose[14].matrix._41, -bind_pose[14].matrix._42, -bind_pose[14].matrix._43, -bind_pose[14].matrix._44);
-	//boneBindPose[27].xyzw = XMFLOAT4(-bind_pose[15].matrix._41, -bind_pose[15].matrix._42, -bind_pose[15].matrix._43, -bind_pose[15].matrix._44);
-	////fifteen
-	//boneBindPose[28].xyzw = XMFLOAT4(-bind_pose[15].matrix._41, -bind_pose[15].matrix._42, -bind_pose[15].matrix._43, -bind_pose[15].matrix._44);
-	//boneBindPose[29].xyzw = XMFLOAT4(-bind_pose[16].matrix._41, -bind_pose[16].matrix._42, -bind_pose[16].matrix._43, -bind_pose[16].matrix._44);
-	////sixteen
-	//boneBindPose[30].xyzw = XMFLOAT4(-bind_pose[16].matrix._41, -bind_pose[16].matrix._42, -bind_pose[16].matrix._43, -bind_pose[16].matrix._44);
-	//boneBindPose[31].xyzw = XMFLOAT4(-bind_pose[17].matrix._41, -bind_pose[17].matrix._42, -bind_pose[17].matrix._43, -bind_pose[17].matrix._44);
-	////sevinteen
-	//boneBindPose[32].xyzw = XMFLOAT4(-bind_pose[17].matrix._41, -bind_pose[17].matrix._42, -bind_pose[17].matrix._43, -bind_pose[17].matrix._44);
-	//boneBindPose[33].xyzw = XMFLOAT4(-bind_pose[18].matrix._41, -bind_pose[18].matrix._42, -bind_pose[18].matrix._43, -bind_pose[18].matrix._44);
-	////eighteen
-	//boneBindPose[34].xyzw = XMFLOAT4(-bind_pose[17].matrix._41, -bind_pose[17].matrix._42, -bind_pose[17].matrix._43, -bind_pose[17].matrix._44);
-	//boneBindPose[35].xyzw = XMFLOAT4(-bind_pose[19].matrix._41, -bind_pose[19].matrix._42, -bind_pose[19].matrix._43, -bind_pose[19].matrix._44);
-	////nighnteen
-	//boneBindPose[36].xyzw = XMFLOAT4(-bind_pose[4].matrix._41, -bind_pose[4].matrix._42, -bind_pose[4].matrix._43, -bind_pose[4].matrix._44);
-	//boneBindPose[37].xyzw = XMFLOAT4(-bind_pose[20].matrix._41, -bind_pose[20].matrix._42, -bind_pose[20].matrix._43, -bind_pose[20].matrix._44);
-	////twenty
-	//boneBindPose[38].xyzw = XMFLOAT4(-bind_pose[20].matrix._41, -bind_pose[20].matrix._42, -bind_pose[20].matrix._43, -bind_pose[20].matrix._44);
-	//boneBindPose[39].xyzw = XMFLOAT4(-bind_pose[21].matrix._41, -bind_pose[21].matrix._42, -bind_pose[21].matrix._43, -bind_pose[21].matrix._44);
-	////twenty one
-	//boneBindPose[40].xyzw = XMFLOAT4(-bind_pose[21].matrix._41, -bind_pose[21].matrix._42, -bind_pose[21].matrix._43, -bind_pose[21].matrix._44);
-	//boneBindPose[41].xyzw = XMFLOAT4(-bind_pose[22].matrix._41, -bind_pose[22].matrix._42, -bind_pose[22].matrix._43, -bind_pose[22].matrix._44);
-	////twenty two
-	//boneBindPose[42].xyzw = XMFLOAT4(-bind_pose[22].matrix._41, -bind_pose[22].matrix._42, -bind_pose[22].matrix._43, -bind_pose[22].matrix._44);
-	//boneBindPose[43].xyzw = XMFLOAT4(-bind_pose[23].matrix._41, -bind_pose[23].matrix._42, -bind_pose[23].matrix._43, -bind_pose[23].matrix._44);
-	////twenty three
-	//boneBindPose[44].xyzw = XMFLOAT4(-bind_pose[23].matrix._41, -bind_pose[23].matrix._42, -bind_pose[23].matrix._43, -bind_pose[23].matrix._44);
-	//boneBindPose[45].xyzw = XMFLOAT4(-bind_pose[24].matrix._41, -bind_pose[24].matrix._42, -bind_pose[24].matrix._43, -bind_pose[24].matrix._44);
-	////twenty four
-	//boneBindPose[46].xyzw = XMFLOAT4(-bind_pose[0].matrix._41, -bind_pose[0].matrix._42, -bind_pose[0].matrix._43, -bind_pose[0].matrix._44);
-	//boneBindPose[47].xyzw = XMFLOAT4(-bind_pose[25].matrix._41, -bind_pose[25].matrix._42, -bind_pose[25].matrix._43, -bind_pose[25].matrix._44);
-	////twenty five
-	//boneBindPose[48].xyzw = XMFLOAT4(-bind_pose[25].matrix._41, -bind_pose[25].matrix._42, -bind_pose[25].matrix._43, -bind_pose[25].matrix._44);
-	//boneBindPose[49].xyzw = XMFLOAT4(-bind_pose[26].matrix._41, -bind_pose[26].matrix._42, -bind_pose[26].matrix._43, -bind_pose[26].matrix._44);
-	////twenty six
-	//boneBindPose[50].xyzw = XMFLOAT4(-bind_pose[26].matrix._41, -bind_pose[26].matrix._42, -bind_pose[26].matrix._43, -bind_pose[26].matrix._44);
-	//boneBindPose[51].xyzw = XMFLOAT4(-bind_pose[27].matrix._41, -bind_pose[27].matrix._42, -bind_pose[27].matrix._43, -bind_pose[27].matrix._44);
-	////twenty sevin
-	//boneBindPose[52].xyzw = XMFLOAT4(-bind_pose[27].matrix._41, -bind_pose[27].matrix._42, -bind_pose[27].matrix._43, -bind_pose[27].matrix._44);
-	//boneBindPose[53].xyzw = XMFLOAT4(-bind_pose[28].matrix._41, -bind_pose[28].matrix._42, -bind_pose[28].matrix._43, -bind_pose[28].matrix._44);
-	////twenty eight
-	//boneBindPose[54].xyzw = XMFLOAT4(-bind_pose[0].matrix._41, -bind_pose[0].matrix._42, -bind_pose[0].matrix._43, -bind_pose[0].matrix._44);
-	//boneBindPose[55].xyzw = XMFLOAT4(-bind_pose[29].matrix._41, -bind_pose[29].matrix._42, -bind_pose[29].matrix._43, -bind_pose[29].matrix._44);
-	////twenty nine
-	//boneBindPose[56].xyzw = XMFLOAT4(-bind_pose[29].matrix._41, -bind_pose[29].matrix._42, -bind_pose[29].matrix._43, -bind_pose[29].matrix._44);
-	//boneBindPose[57].xyzw = XMFLOAT4(-bind_pose[30].matrix._41, -bind_pose[30].matrix._42, -bind_pose[30].matrix._43, -bind_pose[30].matrix._44);
-	////thirty
-	//boneBindPose[58].xyzw = XMFLOAT4(-bind_pose[30].matrix._41, -bind_pose[30].matrix._42, -bind_pose[30].matrix._43, -bind_pose[30].matrix._44);
-	//boneBindPose[59].xyzw = XMFLOAT4(-bind_pose[31].matrix._41, -bind_pose[31].matrix._42, -bind_pose[31].matrix._43, -bind_pose[31].matrix._44);
-	////thirty one
-	//boneBindPose[60].xyzw = XMFLOAT4(-bind_pose[31].matrix._41, -bind_pose[31].matrix._42, -bind_pose[31].matrix._43, -bind_pose[31].matrix._44);
-	//boneBindPose[61].xyzw = XMFLOAT4(-bind_pose[32].matrix._41, -bind_pose[32].matrix._42, -bind_pose[32].matrix._43, -bind_pose[32].matrix._44);
-
-	//DrawLines(boneBindPose[0], (int)62);
-
-#pragma endregion
 	swapchain->Present(0, 0);
 	return true;
 }
 
 bool DEMO_APP::ShutDown()
 {
+
 	device->Release();
+	swapchain->Release();
 	context->Release();
 	rtv->Release();
-	swapchain->Release();
+
 	depthStencil->Release();
 	depthStencilView->Release();
+	wireFrameRasterizerState->Release();
+	SolidRasterizerState->Release();
+
+	modelvertbuffer->Release();
+	modelindexbuffer->Release();
+
+	delete mSkeleton;
+	delete realTimeModel;
+
+	groundvertbuffer->Release();
+	groundindexbuffer->Release();
+
+	if (pDebugPointBuffer)
+		pDebugPointBuffer->Release();
+	if (pDebugLineBuffer)
+		pDebugLineBuffer->Release();
+
+
 	layout->Release();
+
 	vertexshader->Release();
 	pixelshader->Release();
+	
 	constBuffer->Release();
-	delete realTimeJoints;
-	delete realTimeModel;
-	delete meshAnimationOffset;
+	modelAnimationConstBuffer->Release();
 	UnregisterClass(L"DirectXApplication", application);
 	return true;
 }
-
-#pragma region debug functions
-
-void DEMO_APP::DrawPoints(SIMPLE_VERTEX & ThePoints, int PointCount)
-{
-	if (debugPointInit == false)
-	{
-		D3D11_BUFFER_DESC bufferdescription;
-		ZeroMemory(&bufferdescription, sizeof(D3D11_BUFFER_DESC));
-		bufferdescription.Usage = D3D11_USAGE_DYNAMIC;
-		bufferdescription.ByteWidth = (UINT)(sizeof(SIMPLE_VERTEX) * (UINT)PointCount);
-		bufferdescription.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-		bufferdescription.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-		bufferdescription.MiscFlags = NULL;
-		bufferdescription.StructureByteStride = sizeof(SIMPLE_VERTEX);
-		D3D11_SUBRESOURCE_DATA InitData;
-		ZeroMemory(&InitData, sizeof(D3D11_SUBRESOURCE_DATA));
-		InitData.pSysMem = &ThePoints;
-		device->CreateBuffer(&bufferdescription, &InitData, &debugPointBuffer);
-		debugPointInit = true;
-	}
-	context->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_POINTLIST);
-	context->IASetVertexBuffers(0, 1, &debugPointBuffer, &stride, &offset);
-	context->RSSetState(SolidRasterizerState);
-	context->Draw((UINT)PointCount, 0);
-}
-
-void DEMO_APP::DrawLines(SIMPLE_VERTEX & TheLines, int LineCount)
-{
-	if (debugLineInit == false)
-	{
-		D3D11_BUFFER_DESC bufferdescription;
-		D3D11_SUBRESOURCE_DATA InitData;
-		UINT VertexCount = LineCount;
-		ZeroMemory(&bufferdescription, sizeof(D3D11_BUFFER_DESC));
-		bufferdescription.Usage = D3D11_USAGE_IMMUTABLE;
-		bufferdescription.ByteWidth = (UINT)(sizeof(SIMPLE_VERTEX) * VertexCount);
-		bufferdescription.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-		bufferdescription.CPUAccessFlags = NULL;
-		bufferdescription.MiscFlags = NULL;
-		bufferdescription.StructureByteStride = sizeof(SIMPLE_VERTEX);
-		ZeroMemory(&InitData, sizeof(D3D11_SUBRESOURCE_DATA));
-		InitData.pSysMem = &TheLines;
-		device->CreateBuffer(&bufferdescription, &InitData, &debugLineBuffer);
-		debugLineInit = true;
-	}
-	if (debugLineInit == true)
-	{
-		UINT VertexCount = 1048;
-		context->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_LINELIST);
-		context->IASetVertexBuffers(0, 1, &debugLineBuffer, &stride, &offset);
-		context->RSSetState(SolidRasterizerState);
-		context->Draw(VertexCount, 0);
-	}
-}
-
-#pragma endregion
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdLine, int nCmdShow);
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wparam, LPARAM lparam);
