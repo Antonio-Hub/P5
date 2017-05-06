@@ -1,0 +1,9 @@
+﻿  stdafx.cpp
+  dllmain.cpp
+  FBX.cpp
+     Creating library C:\Users\Antonio-ROG\Desktop\P5\DX_Hardware\x64\Release\FBX.lib and object C:\Users\Antonio-ROG\Desktop\P5\DX_Hardware\x64\Release\FBX.exp
+  Generating code
+  All 1434 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
+  Finished generating code
+  FBX.vcxproj -> C:\Users\Antonio-ROG\Desktop\P5\DX_Hardware\x64\Release\FBX.dll
+  FBX.vcxproj -> C:\Users\Antonio-ROG\Desktop\P5\DX_Hardware\x64\Release\FBX.pdb (Full PDB)

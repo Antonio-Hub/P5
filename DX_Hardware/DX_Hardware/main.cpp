@@ -118,11 +118,17 @@ private:
 	int keyframeAnimIndex = 0;
 	double twoKeyFrameTimes[2]{};
 	////////////////////////////////////////////////////
+
 	//ground plane
 	ID3D11Buffer * groundvertbuffer = NULL;
 	ID3D11Buffer * groundindexbuffer = NULL;
 	unsigned int groundindexCount = 0;
+
 	//debug buffer
+	ID3D11Buffer * pDebugPointBuffer = nullptr;
+	unsigned int DebugPointCount = 128;
+	SIMPLE_VERTEX DebugPointData[128]{};
+	ID3D11Buffer * pDebugLineBuffer = nullptr;
 	ID3D11Buffer * debugPointBuffer = nullptr;
 	ID3D11Buffer * debugLineBuffer = nullptr;
 	bool debugPointInit = false;
@@ -269,29 +275,42 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 #pragma endregion
 
 #pragma region fbx loading
-	char file[]{ "Box_Idle.fbx" };
+	char file[]{ "Teddy_Idle.fbx" };
 	char mesh[]{ "mesh.bin" };
 	char bone[]{ "bone.bin" };
 	char animation[]{ "animation.bin" };
 
-
+	//matrix comes in from fbx like this
+	// 1.0 0.0 0.0 0.0
+	// 0.0 1.0 0.0 0.0
+	// 0.0 0.0 1.0 0.0
+	// x   y   z   w
 	function(file, mesh, bone, animation, data, IdleAnimationData, FileMesh);
 
 	mSkeleton = new Skeleton();
 	functionality(mesh, bone, animation, triCount, triIndices, verts, mSkeleton, bind_pose);
-	realTimeJoints = new SIMPLE_VERTEX[(int)IdleAnimationData.Frames[0].Joints.size()]{};
-	pRealTimeJointPos = new XMFLOAT4X4[(int)IdleAnimationData.Frames[0].Joints.size()]{};
 
-	XMMATRIX * pInverseMatrix_Bind_Pose = new XMMATRIX[boneCount]{};
-	for (size_t i = 0; i < boneCount; i++)
+	for (size_t i = 0; i < data.size(); i++)
 	{
-		pInverseMatrix_Bind_Pose[i] = XMMatrixSet(
-			data[i].global_xform._11, data[i].global_xform._12, data[i].global_xform._13, data[i].global_xform._14,
-			data[i].global_xform._21, data[i].global_xform._22, data[i].global_xform._23, data[i].global_xform._24,
-			data[i].global_xform._31, data[i].global_xform._32, data[i].global_xform._33, data[i].global_xform._34,
-			data[i].global_xform._41, data[i].global_xform._42, data[i].global_xform._43, data[i].global_xform._44);
-		XMStoreFloat4x4(&send_to_ram2.InverseBindPose[i], XMMatrixTranspose(XMMatrixInverse(NULL, pInverseMatrix_Bind_Pose[i])));
+		DebugPointData[i].xyzw.x = data[i].global_xform._41;
+		DebugPointData[i].xyzw.y = data[i].global_xform._42;
+		DebugPointData[i].xyzw.z = data[i].global_xform._43;
+		DebugPointData[i].xyzw.w = 1.0f;
 	}
+
+	//realTimeJoints = new SIMPLE_VERTEX[(int)IdleAnimationData.Frames[0].Joints.size()]{};
+	//pRealTimeJointPos = new XMFLOAT4X4[(int)IdleAnimationData.Frames[0].Joints.size()]{};
+
+	//XMMATRIX * pInverseMatrix_Bind_Pose = new XMMATRIX[boneCount]{};
+	//for (size_t i = 0; i < boneCount; i++)
+	//{
+	//	pInverseMatrix_Bind_Pose[i] = XMMatrixSet(
+	//		data[i].global_xform._11, data[i].global_xform._12, data[i].global_xform._13, data[i].global_xform._14,
+	//		data[i].global_xform._21, data[i].global_xform._22, data[i].global_xform._23, data[i].global_xform._24,
+	//		data[i].global_xform._31, data[i].global_xform._32, data[i].global_xform._33, data[i].global_xform._34,
+	//		data[i].global_xform._41, data[i].global_xform._42, data[i].global_xform._43, data[i].global_xform._44);
+	//	XMStoreFloat4x4(&send_to_ram2.InverseBindPose[i], XMMatrixTranspose(XMMatrixInverse(NULL, pInverseMatrix_Bind_Pose[i])));
+	//}
 #pragma endregion
 	
 #pragma region teddy model buffers
@@ -331,10 +350,10 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 
 
 	ZeroMemory(&bufferdescription, sizeof(D3D11_BUFFER_DESC));
-	bufferdescription.Usage = D3D11_USAGE_DYNAMIC;
+	bufferdescription.Usage = D3D11_USAGE_IMMUTABLE;
 	bufferdescription.ByteWidth = (UINT)(sizeof(SIMPLE_VERTEX) * modelVertCount);
 	bufferdescription.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	bufferdescription.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	bufferdescription.CPUAccessFlags = NULL;
 	bufferdescription.MiscFlags = NULL;
 	bufferdescription.StructureByteStride = sizeof(SIMPLE_VERTEX);
 	ZeroMemory(&InitData, sizeof(D3D11_SUBRESOURCE_DATA));
@@ -399,6 +418,20 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	ZeroMemory(&InitData, sizeof(D3D11_SUBRESOURCE_DATA));
 	InitData.pSysMem = groundPlaneindex;
 	device->CreateBuffer(&bufferdescription, &InitData, &groundindexbuffer);
+
+#pragma endregion
+
+#pragma region debug buffer
+	ZeroMemory(&bufferdescription, sizeof(D3D11_BUFFER_DESC));
+	bufferdescription.Usage = D3D11_USAGE_DYNAMIC;
+	bufferdescription.ByteWidth = (UINT)(sizeof(SIMPLE_VERTEX) * DebugPointCount);
+	bufferdescription.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	bufferdescription.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	bufferdescription.MiscFlags = NULL;
+	bufferdescription.StructureByteStride = sizeof(SIMPLE_VERTEX);
+	ZeroMemory(&InitData, sizeof(D3D11_SUBRESOURCE_DATA));
+	InitData.pSysMem = DebugPointData;
+	device->CreateBuffer(&bufferdescription, &InitData, &pDebugPointBuffer);
 
 #pragma endregion
 
@@ -581,7 +614,7 @@ bool DEMO_APP::Run()
 	
 		XMVECTOR eye = XMQuaternionSlerp(from, to, (float)ratio);
 		XMStoreFloat4(&t, eye);
-
+		DebugPointData[i].xyzw = t;
 		send_to_ram2.RealTimePose[i]._11 = 1.0f;
 		send_to_ram2.RealTimePose[i]._22 = 1.0f;
 		send_to_ram2.RealTimePose[i]._33 = 1.0f;
@@ -665,6 +698,20 @@ bool DEMO_APP::Run()
 	context->DrawIndexed(modelindexCount, 0, 0);
 
 #pragma endregion
+
+#pragma region debug point
+	ZeroMemory(&mapResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
+	context->Map(pDebugPointBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapResource);
+	memcpy(mapResource.pData, &DebugPointData, sizeof(SIMPLE_VERTEX) * DebugPointCount);
+	context->Unmap(pDebugPointBuffer, 0);
+
+	context->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_POINTLIST);
+	context->IASetVertexBuffers(0, 1, &pDebugPointBuffer, &stride, &offset);
+	context->RSSetState(wireFrameRasterizerState);
+	context->Draw(DebugPointCount, 0);
+
+#pragma endregion
+
 #pragma region draw ground
 	context->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	context->IASetVertexBuffers(0, 1, &groundvertbuffer, &stride, &offset);
@@ -672,6 +719,7 @@ bool DEMO_APP::Run()
 	context->RSSetState(SolidRasterizerState);
 	context->DrawIndexed(groundindexCount, 0, 0);
 #pragma endregion
+
 #pragma region debug joints
 	/*
 	//render bind pose joints

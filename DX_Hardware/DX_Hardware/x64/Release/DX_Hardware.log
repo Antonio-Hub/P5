@@ -1,0 +1,10 @@
+﻿  main.cpp
+main.cpp(543): warning C4018: '<': signed/unsigned mismatch
+main.cpp(555): warning C4018: '<': signed/unsigned mismatch
+  Generating code
+  12 of 313 functions ( 3.8%) were compiled, the rest were copied from previous compilation.
+    0 functions were new in current compilation
+    4 functions had inline decision re-evaluated but remain unchanged
+  Finished generating code
+  DX_Hardware.vcxproj -> C:\Users\Antonio-ROG\Desktop\P5\DX_Hardware\x64\Release\DX_Hardware.exe
+  DX_Hardware.vcxproj -> C:\Users\Antonio-ROG\Desktop\P5\DX_Hardware\x64\Release\DX_Hardware.pdb (Full PDB)
