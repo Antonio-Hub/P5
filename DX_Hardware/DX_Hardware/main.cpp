@@ -70,8 +70,6 @@ public:
 	DEMO_APP(HINSTANCE hinst, WNDPROC proc);
 	bool Run();
 	bool ShutDown();
-	void DrawPoints(SIMPLE_VERTEX & ThePoints, int PointCount);
-	void DrawLines(SIMPLE_VERTEX & TheLines, int LineCount);
 private:
 	HINSTANCE						application;
 	WNDPROC							appWndProc;
@@ -96,13 +94,11 @@ private:
 	unsigned int modelVertCount = 0;
 
 	//model animation data
-	vector<joint> data;
-	anim_clip IdleAnimationData;
-	Skeleton * mSkeleton = nullptr;
+	anim_clip * IdleAnimationData = nullptr;
 	unsigned int triCount = 0;
 	vector<unsigned int> triIndices;
 	vector<BlendingVertex> verts;
-	vector<Bone> bind_pose;
+	vector<joint> bind_pose;
 	SIMPLE_VERTEX * realTimeModel = nullptr;
 	unsigned int keyFrameCount = 0;
 	unsigned int boneCount = 0;
@@ -263,15 +259,14 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	char mesh[]{ "mesh.bin" };
 	char bone[]{ "bone.bin" };
 	char animation[]{ "animation.bin" };
-
+	IdleAnimationData = new anim_clip();
 	//matrix comes in from fbx like this
 	// 1.0 0.0 0.0 0.0
 	// 0.0 1.0 0.0 0.0
 	// 0.0 0.0 1.0 0.0
 	// x   y   z   w
-	function(file, mesh, bone, animation, data, IdleAnimationData, FileMesh);
-	mSkeleton = new Skeleton();
-	functionality(mesh, bone, animation, triCount, triIndices, verts, mSkeleton, bind_pose);
+	function(file, mesh, bone, animation, IdleAnimationData, FileMesh);
+	functionality(mesh, bone, animation, triCount, triIndices, verts, bind_pose);
 
 #pragma endregion
 	
@@ -373,11 +368,11 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	device->CreateBuffer(&bufferdescription, &InitData, &groundindexbuffer);
 
 //debug buffer
-	for (size_t i = 0; i < data.size(); i++)
+	for (size_t i = 0; i < bind_pose.size(); i++)
 	{
-		DebugPointData[i].xyzw.x = data[i].global_xform._41;
-		DebugPointData[i].xyzw.y = data[i].global_xform._42;
-		DebugPointData[i].xyzw.z = data[i].global_xform._43;
+		DebugPointData[i].xyzw.x = bind_pose[i].global_xform._41;
+		DebugPointData[i].xyzw.y = bind_pose[i].global_xform._42;
+		DebugPointData[i].xyzw.z = bind_pose[i].global_xform._43;
 		DebugPointData[i].xyzw.w = 1.0f;
 	}
 	ZeroMemory(&bufferdescription, sizeof(D3D11_BUFFER_DESC));
@@ -472,7 +467,7 @@ bool DEMO_APP::Run()
 	{
 		currAnimTime -= 100.0 * Time.Delta();
 		if (currAnimTime < 0)
-			currAnimTime = IdleAnimationData.Duration;
+			currAnimTime = IdleAnimationData->Duration;
 		imput.bLeft = true;
 	}
 	if (!imput.buttons[VK_LEFT])
@@ -481,7 +476,7 @@ bool DEMO_APP::Run()
 	if (imput.bRight == false && imput.buttons[VK_RIGHT])
 	{
 		currAnimTime += 100.0 * Time.Delta();
-		if (currAnimTime > IdleAnimationData.Duration)
+		if (currAnimTime > IdleAnimationData->Duration)
 			currAnimTime = 0.0;
 		imput.bRight = true;
 	}
@@ -512,23 +507,23 @@ bool DEMO_APP::Run()
 
 #pragma region draw model
 
-	keyFrameCount = (int)IdleAnimationData.Frames.size();
-	boneCount = (int)IdleAnimationData.Frames[0].Joints.size();
-	animLoopTime = IdleAnimationData.Duration;
+	keyFrameCount = (int)IdleAnimationData->Frames.size();
+	boneCount = (int)IdleAnimationData->Frames[0].Joints.size();
+	animLoopTime = IdleAnimationData->Duration;
 
 ////////////////////find current times animation index///////////////////
 	for (size_t i = 0; i < keyFrameCount; i++)
-		if (currAnimTime > IdleAnimationData.Frames[i].Time)
+		if (currAnimTime > IdleAnimationData->Frames[i].Time)
 			keyframeAnimIndex = (unsigned int)i;
 ///////////////////
 
 ////store the time stamp for the keyframe infront and behind current time////
 	ZeroMemory(twoKeyFrameTimes, sizeof(double) * 2);
-	twoKeyFrameTimes[0] = IdleAnimationData.Frames[keyframeAnimIndex].Time;
+	twoKeyFrameTimes[0] = IdleAnimationData->Frames[keyframeAnimIndex].Time;
 	if ((unsigned)keyframeAnimIndex + 1 < keyFrameCount)
-		twoKeyFrameTimes[1] = IdleAnimationData.Frames[keyframeAnimIndex + 1].Time;
+		twoKeyFrameTimes[1] = IdleAnimationData->Frames[keyframeAnimIndex + 1].Time;
 	else
-		twoKeyFrameTimes[1] = IdleAnimationData.Frames[0].Time;
+		twoKeyFrameTimes[1] = IdleAnimationData->Frames[0].Time;
 ////
 
 ///////////////////calculate ratio between keyframes//////////////////////////
@@ -541,23 +536,23 @@ bool DEMO_APP::Run()
 	for (size_t i = 0; i < boneCount; i++)
 	{
 		XMVECTOR from = XMVectorSet(
-			IdleAnimationData.Frames[keyframeAnimIndex].Joints[i]._41,
-			IdleAnimationData.Frames[keyframeAnimIndex].Joints[i]._42,
-			IdleAnimationData.Frames[keyframeAnimIndex].Joints[i]._43,
-			IdleAnimationData.Frames[keyframeAnimIndex].Joints[i]._44);
+			IdleAnimationData->Frames[keyframeAnimIndex].Joints[i]._41,
+			IdleAnimationData->Frames[keyframeAnimIndex].Joints[i]._42,
+			IdleAnimationData->Frames[keyframeAnimIndex].Joints[i]._43,
+			IdleAnimationData->Frames[keyframeAnimIndex].Joints[i]._44);
 		XMVECTOR to;
 		if ((unsigned)keyframeAnimIndex + 1 < keyFrameCount)
 			to = XMVectorSet(
-				IdleAnimationData.Frames[keyframeAnimIndex + 1].Joints[i]._41,
-				IdleAnimationData.Frames[keyframeAnimIndex + 1].Joints[i]._42,
-				IdleAnimationData.Frames[keyframeAnimIndex + 1].Joints[i]._43,
-				IdleAnimationData.Frames[keyframeAnimIndex + 1].Joints[i]._44);
+				IdleAnimationData->Frames[keyframeAnimIndex + 1].Joints[i]._41,
+				IdleAnimationData->Frames[keyframeAnimIndex + 1].Joints[i]._42,
+				IdleAnimationData->Frames[keyframeAnimIndex + 1].Joints[i]._43,
+				IdleAnimationData->Frames[keyframeAnimIndex + 1].Joints[i]._44);
 		else
 			to = XMVectorSet(
-				IdleAnimationData.Frames[0].Joints[i]._41,
-				IdleAnimationData.Frames[0].Joints[i]._42,
-				IdleAnimationData.Frames[0].Joints[i]._43,
-				IdleAnimationData.Frames[0].Joints[i]._44);
+				IdleAnimationData->Frames[0].Joints[i]._41,
+				IdleAnimationData->Frames[0].Joints[i]._42,
+				IdleAnimationData->Frames[0].Joints[i]._43,
+				IdleAnimationData->Frames[0].Joints[i]._44);
 
 	
 		XMVECTOR eye = XMQuaternionSlerp(from, to, (float)ratio);
@@ -629,7 +624,6 @@ bool DEMO_APP::ShutDown()
 	modelvertbuffer->Release();
 	modelindexbuffer->Release();
 
-	delete mSkeleton;
 	delete realTimeModel;
 
 	groundvertbuffer->Release();

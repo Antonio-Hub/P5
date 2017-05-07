@@ -424,7 +424,7 @@ void DepthFirstSearch(FbxNode * pNode, vector<my_fbx_joint> & Container, int Par
 		DepthFirstSearch(pNode->GetChild((int)i), Container, Parent_Index);
 			
 }
-__declspec(dllexport) void function(char * fileName, char * outFileNameMesh, char * outFileNameBone, char * outFileNameAnimations, vector<joint> & Bind_Pose, anim_clip & Animation, vector<vert_pos_skinned> & FileMesh)
+__declspec(dllexport) void function(char * fileName, char * outFileNameMesh, char * outFileNameBone, char * outFileNameAnimations, anim_clip* & animation, vector<vert_pos_skinned> & FileMesh)
 {
 
 	FbxManager * pManager = FbxManager::Create();
@@ -474,14 +474,12 @@ __declspec(dllexport) void function(char * fileName, char * outFileNameMesh, cha
 		pJoint->global_xform._44 = (float)arrBindPose[i].pNode->EvaluateGlobalTransform().mData[3][3];
 		arrTransforms.push_back(*pJoint);
 	}
-	Bind_Pose = arrTransforms;
 	FbxAnimStack * pAnimStack = pScene->GetCurrentAnimationStack();
 	FbxTimeSpan TimeSpan = pAnimStack->GetLocalTimeSpan();
 	FbxTime Time = TimeSpan.GetDuration();
 	FbxLongLong FrameCount = Time.GetFrameCount(FbxTime::EMode::eFrames24);
 
-	anim_clip animation;
-	animation.Duration = Time.GetSecondDouble();
+	animation->Duration = Time.GetSecondDouble();
 	for (size_t FrameIndex = 1; FrameIndex < (size_t)FrameCount; FrameIndex++)
 	{
 		keyframe TheKeyFrame;
@@ -508,9 +506,9 @@ __declspec(dllexport) void function(char * fileName, char * outFileNameMesh, cha
 			pJoint->_44 = (float)arrBindPose[JointIndex].pNode->EvaluateGlobalTransform(Time).mData[3][3];
 			TheKeyFrame.Joints.push_back(*pJoint);
 		}
-		animation.Frames.push_back(TheKeyFrame);
+		animation->Frames.push_back(TheKeyFrame);
 	}
-	Animation = animation;
+
 	FbxMesh * pMesh = nullptr;
 	count = 0;
 	do
@@ -595,8 +593,10 @@ __declspec(dllexport) void function(char * fileName, char * outFileNameMesh, cha
 		vector<Triangle> tris;
 		vector<BlendingVertex> verts;
 		ProcessGeometry(mControlPoints, mSkeleton, mScene->GetRootNode(), TriCount, tris, verts, mHasAnimation, mScene, bind_pose, vertCount);
-		unsigned int KeyFrameCount = (unsigned int)mSkeleton->joints.size();
-		unsigned int bindposeCount = (unsigned int)bind_pose.size();
+		//unsigned int KeyFrameCount = (unsigned int)mSkeleton->joints.size();
+		unsigned int KeyFrameCount = (unsigned int)animation->Frames.size();
+		//unsigned int bindposeCount = (unsigned int)bind_pose.size();
+		unsigned int bindposeCount = (unsigned int)arrTransforms.size();
 		FILE* file = nullptr;
 		fopen_s(&file, outFileNameMesh, "wb");
 		if (file)
@@ -630,12 +630,15 @@ __declspec(dllexport) void function(char * fileName, char * outFileNameMesh, cha
 		if (file)
 		{
 			fwrite(&KeyFrameCount, sizeof(unsigned int), 1, file);
-			for (int i = 0; i < mSkeleton->joints.size(); i++)
+			for (int i = 0; i < KeyFrameCount; i++)
 			{
-				unsigned int bone_size = (unsigned int)mSkeleton->joints[i]->bones.size();
+				//unsigned int bone_size = (unsigned int)mSkeleton->joints[i]->bones.size();
+				unsigned int bone_size = (unsigned int)animation->Frames[i].Joints.size();
 				fwrite(&bone_size, sizeof(unsigned int), 1, file);
-				fwrite(&mSkeleton->joints[i]->bones[0], sizeof(Bone), mSkeleton->joints[i]->bones.size(), file);
-				fwrite(&mSkeleton->joints[i]->Time, sizeof(float), 1, file);
+				//fwrite(&mSkeleton->joints[i]->bones[0], sizeof(Bone), mSkeleton->joints[i]->bones.size(), file);
+				fwrite(&animation->Frames[i].Joints[0], sizeof(joint), animation->Frames[i].Joints.size(), file);
+				//fwrite(&mSkeleton->joints[i]->Time, sizeof(float), 1, file);
+				fwrite(&animation->Frames[i].Time, sizeof(double), 1, file);
 			}
 			fclose(file);
 		}
@@ -645,9 +648,7 @@ __declspec(dllexport) void function(char * fileName, char * outFileNameMesh, cha
 		{
 			fwrite(&bindposeCount, sizeof(unsigned int), 1, file);
 			if (bindposeCount > 0)
-			{
-				fwrite(&bind_pose[0], sizeof(Bone), bindposeCount, file);
-			}
+				fwrite(&arrTransforms[0], sizeof(joint), bindposeCount, file);
 			fclose(file);
 		}
 		delete converter;
@@ -662,7 +663,7 @@ __declspec(dllexport) void function(char * fileName, char * outFileNameMesh, cha
 		mSkeleton->joints.clear();
 	}
 }
-__declspec(dllexport) bool functionality(char * inFileNameMesh, char * inFileNameBone, char * inFileNameAnimations, unsigned int & triCount, vector<unsigned int>& triIndices, vector<BlendingVertex>& verts, Skeleton* & mSkeleton, vector<Bone>& bind_pose)
+__declspec(dllexport) bool functionality(char * inFileNameMesh, char * inFileNameBone, char * inFileNameAnimations, unsigned int & triCount, vector<unsigned int>& triIndices, vector<BlendingVertex>& verts, vector<joint>& bind_pose)
 {
 	FILE * f;
 	bool bReturn = false;
@@ -703,7 +704,7 @@ __declspec(dllexport) bool functionality(char * inFileNameMesh, char * inFileNam
 		unsigned int bindCount = 0;
 		fread(&bindCount, sizeof(unsigned int), 1, f);
 		bind_pose.resize(bindCount);
-		fread(&bind_pose[0], sizeof(Bone), bindCount, f);
+		fread(&bind_pose[0], sizeof(joint), bindCount, f);
 		fclose(f);
 	}
 	f = nullptr;
@@ -711,17 +712,17 @@ __declspec(dllexport) bool functionality(char * inFileNameMesh, char * inFileNam
 	if (f)
 	{
 		unsigned int frameCount = 0;
-		fread(&frameCount, sizeof(unsigned int), 1, f);
-		mSkeleton->joints.resize(frameCount);
+		//fread(&frameCount, sizeof(unsigned int), 1, f);
+		//animation->Frames.resize(frameCount);
 		for (unsigned int i = 0; i < frameCount; i++)
 		{
-			KeyFrame * t = new KeyFrame();
-			unsigned int bone_size = 0;
-			fread(&bone_size, sizeof(unsigned int), 1, f);
-			t->bones.resize(bone_size);
-			fread(&t->bones[0], sizeof(Bone), bone_size, f);
-			fread(&t->Time, sizeof(float), 1, f);
-			mSkeleton->joints[i] = t;
+			//keyframe * t = new keyframe();
+			//unsigned int bone_size = 0;
+			//fread(&bone_size, sizeof(unsigned int), 1, f);
+			//t->Joints.resize(bone_size);
+			//fread(&t->Joints[0], sizeof(joint), bone_size, f);
+			//fread(&t->Time, sizeof(double), 1, f);
+			//animation->Frames[i] = *t;
 		}
 		fclose(f);
 	}
