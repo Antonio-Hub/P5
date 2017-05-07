@@ -166,31 +166,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	ShowWindow(window, SW_SHOW);
 #pragma endregion
 
-#pragma region camera model
-	//camera data
-	//static const XMVECTORF32 eye = { 0.0f, 0.0f, -5.5f, 0.0f };
-	static const XMVECTORF32 eye = { 0.0f, 35.0f, -30.0f, 0.0f };
-	//static const XMVECTORF32 eye = { 0.0f, 350.0f, -300.0f, 0.0f };
-	static const XMVECTORF32 at = { 0.0f, 0.0f, 0.0f, 0.0f };
-	static const XMVECTORF32 up = { 0.0f, 1.0f, 0.0f, 0.0f };
-	XMStoreFloat4x4(&camera, XMMatrixInverse(NULL, XMMatrixLookAtLH(eye, at, up)));
-	XMStoreFloat4x4(&send_to_ram.camView, XMMatrixTranspose(XMMatrixLookAtLH(eye, at, up)));
 
-	float aspectRatio = BACKBUFFER_WIDTH / BACKBUFFER_HEIGHT;
-	float fovAngleY = 70.0f * XM_PI / 180.0f;
-	if (aspectRatio < 1.0f)
-		fovAngleY *= 2.0f;
-	fovAngleY = XMConvertToDegrees(fovAngleY);
-	XMMATRIX perspectiveMatrix = XMMatrixPerspectiveFovLH(
-		fovAngleY,
-		aspectRatio,
-		0.01f,
-		100000.0f
-	);
-	XMStoreFloat4x4(&send_to_ram.camProj, XMMatrixTranspose(perspectiveMatrix));
-	//model data
-	XMStoreFloat4x4(&send_to_ram.modelPos, XMMatrixTranspose(XMMatrixIdentity()));
-#pragma endregion
 
 #pragma region swap chain device context
 	DXGI_SWAP_CHAIN_DESC scd;
@@ -255,7 +231,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 #pragma endregion
 
 #pragma region fbx loading
-	char file[]{ "Box_Idle.fbx" };
+	char file[]{ "Teddy_Idle.fbx" };
 	char mesh[]{ "mesh.bin" };
 	char bone[]{ "bone.bin" };
 	char animation[]{ "animation.bin" };
@@ -269,11 +245,11 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	functionality(mesh, bone, animation, triCount, triIndices, verts, bind_pose);
 
 #pragma endregion
-	
+
 #pragma region buffers
 	D3D11_BUFFER_DESC bufferdescription;
 	D3D11_SUBRESOURCE_DATA InitData;
-//teddy
+	//teddy
 	modelVertCount = (unsigned int)verts.size();
 	realTimeModel = new SIMPLE_VERTEX[modelVertCount];
 	float modelColor[4]{ 1.0f, 1.0f, 1.0f, 0.0f };
@@ -328,7 +304,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	InitData.pSysMem = modelIndex;
 	device->CreateBuffer(&bufferdescription, &InitData, &modelindexbuffer);
 
-//ground plane
+	//ground plane
 	groundindexCount = 6;
 	SIMPLE_VERTEX groundPlane[4]{};
 	groundPlane[0].xyzw = XMFLOAT4(10.0f, 0.0f, 10.0f, 0);
@@ -366,15 +342,10 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	ZeroMemory(&InitData, sizeof(D3D11_SUBRESOURCE_DATA));
 	InitData.pSysMem = groundPlaneindex;
 	device->CreateBuffer(&bufferdescription, &InitData, &groundindexbuffer);
+#pragma endregion
 
-//debug buffer
-	for (size_t i = 0; i < bind_pose.size(); i++)
-	{
-		DebugPointData[i].xyzw.x = bind_pose[i].global_xform._41;
-		DebugPointData[i].xyzw.y = bind_pose[i].global_xform._42;
-		DebugPointData[i].xyzw.z = bind_pose[i].global_xform._43;
-		DebugPointData[i].xyzw.w = 1.0f;
-	}
+#pragma region debug
+	//debug buffer
 	ZeroMemory(&bufferdescription, sizeof(D3D11_BUFFER_DESC));
 	bufferdescription.Usage = D3D11_USAGE_DYNAMIC;
 	bufferdescription.ByteWidth = (UINT)(sizeof(SIMPLE_VERTEX) * DebugPointCount);
@@ -386,7 +357,40 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	InitData.pSysMem = DebugPointData;
 	device->CreateBuffer(&bufferdescription, &InitData, &pDebugPointBuffer);
 
-//const buff
+	ZeroMemory(&bufferdescription, sizeof(D3D11_BUFFER_DESC));
+	bufferdescription.Usage = D3D11_USAGE_DYNAMIC;
+	bufferdescription.ByteWidth = (UINT)(sizeof(SIMPLE_VERTEX) * DebugLineCount);
+	bufferdescription.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	bufferdescription.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	bufferdescription.MiscFlags = NULL;
+	bufferdescription.StructureByteStride = sizeof(SIMPLE_VERTEX);
+	ZeroMemory(&InitData, sizeof(D3D11_SUBRESOURCE_DATA));
+	InitData.pSysMem = DebugLineData;
+	device->CreateBuffer(&bufferdescription, &InitData, &pDebugLineBuffer);
+
+#pragma endregion
+
+#pragma region const buffer data init
+	//const buff
+	//camera data
+	//static const XMVECTORF32 eye = { 0.0f, 0.0f, 5.5f, 0.0f };
+	//static const XMVECTORF32 eye = { 0.0f, 35.0f, 30.0f, 0.0f };
+	//static const XMVECTORF32 eye = { 0.0f, 350.0f, 300.0f, 0.0f };
+	static const XMVECTORF32 eye = { 0.0f, 350.0f, 300.0f, 0.0f };
+	static const XMVECTORF32 at = { 0.0f, 0.0f, 0.0f, 0.0f };
+	static const XMVECTORF32 up = { 0.0f, 1.0f, 0.0f, 0.0f };
+	XMStoreFloat4x4(&camera, XMMatrixInverse(NULL, XMMatrixLookAtLH(eye, at, up)));
+	XMStoreFloat4x4(&send_to_ram.camView, XMMatrixTranspose(XMMatrixLookAtLH(eye, at, up)));
+
+	float aspectRatio = BACKBUFFER_WIDTH / BACKBUFFER_HEIGHT;
+	float fovAngleY = 70.0f * XM_PI / 180.0f;
+	if (aspectRatio < 1.0f)
+		fovAngleY *= 2.0f;
+	fovAngleY = XMConvertToDegrees(fovAngleY);
+	XMMATRIX perspectiveMatrix = XMMatrixPerspectiveFovLH(fovAngleY, aspectRatio, 0.01f, 100000.0f);
+	XMStoreFloat4x4(&send_to_ram.camProj, XMMatrixTranspose(perspectiveMatrix));
+	//model data
+	XMStoreFloat4x4(&send_to_ram.modelPos, XMMatrixTranspose(XMMatrixIdentity()));
 	ZeroMemory(&bufferdescription, sizeof(D3D11_BUFFER_DESC));
 	bufferdescription.Usage = D3D11_USAGE_DYNAMIC;
 	bufferdescription.ByteWidth = sizeof(VRAM);
@@ -414,7 +418,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 #pragma region shaders and imput layout
 	device->CreateVertexShader(Trivial_VS, sizeof(Trivial_VS), NULL, &vertexshader);
 	device->CreatePixelShader(Trivial_PS, sizeof(Trivial_PS), NULL, &pixelshader);
- 
+
 	D3D11_INPUT_ELEMENT_DESC vertlayout[] =
 	{
 		"POSITION", 0,DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0,
@@ -511,26 +515,26 @@ bool DEMO_APP::Run()
 	boneCount = (int)IdleAnimationData->Frames[0].Joints.size();
 	animLoopTime = IdleAnimationData->Duration;
 
-////////////////////find current times animation index///////////////////
+	////////////////////find current times animation index///////////////////
 	for (size_t i = 0; i < keyFrameCount; i++)
 		if (currAnimTime > IdleAnimationData->Frames[i].Time)
 			keyframeAnimIndex = (unsigned int)i;
-///////////////////
+	///////////////////
 
-////store the time stamp for the keyframe infront and behind current time////
+	////store the time stamp for the keyframe infront and behind current time////
 	ZeroMemory(twoKeyFrameTimes, sizeof(double) * 2);
 	twoKeyFrameTimes[0] = IdleAnimationData->Frames[keyframeAnimIndex].Time;
 	if ((unsigned)keyframeAnimIndex + 1 < keyFrameCount)
 		twoKeyFrameTimes[1] = IdleAnimationData->Frames[keyframeAnimIndex + 1].Time;
 	else
 		twoKeyFrameTimes[1] = IdleAnimationData->Frames[0].Time;
-////
+	////
 
-///////////////////calculate ratio between keyframes//////////////////////////
+	///////////////////calculate ratio between keyframes//////////////////////////
 	double ratio = (currAnimTime - twoKeyFrameTimes[0]) / (twoKeyFrameTimes[1] - twoKeyFrameTimes[0]);
-///////////////////
+	///////////////////
 
-/////////////////slerp between two key frames using ratio/////////////////////
+	/////////////////slerp between two key frames using ratio/////////////////////
 	XMMATRIX pos = XMMatrixIdentity();
 	XMFLOAT4 t{};
 	for (size_t i = 0; i < boneCount; i++)
@@ -554,22 +558,19 @@ bool DEMO_APP::Run()
 				IdleAnimationData->Frames[0].Joints[i]._43,
 				IdleAnimationData->Frames[0].Joints[i]._44);
 
-	
+
 		XMVECTOR eye = XMQuaternionSlerp(from, to, (float)ratio);
 		XMStoreFloat4(&t, eye);
 		DebugPointData[i].xyzw = t;
-		send_to_ram2.RealTimePose[i]._11 = 1.0f;
-		send_to_ram2.RealTimePose[i]._22 = 1.0f;
-		send_to_ram2.RealTimePose[i]._33 = 1.0f;
-		send_to_ram2.RealTimePose[i]._41 = t.x;
-		send_to_ram2.RealTimePose[i]._42 = t.y;
-		send_to_ram2.RealTimePose[i]._43 = t.z;
-		send_to_ram2.RealTimePose[i]._44 = t.w;
+		send_to_ram2.RealTimePose[i]._11 = 1.0f; send_to_ram2.RealTimePose[i]._12 = 0.0f; send_to_ram2.RealTimePose[i]._13 = 0.0f; send_to_ram2.RealTimePose[i]._14 = 0.0f;
+		send_to_ram2.RealTimePose[i]._21 = 0.0f; send_to_ram2.RealTimePose[i]._22 = 1.0f; send_to_ram2.RealTimePose[i]._23 = 0.0f; send_to_ram2.RealTimePose[i]._24 = 0.0f;
+		send_to_ram2.RealTimePose[i]._31 = 0.0f; send_to_ram2.RealTimePose[i]._32 = 0.0f; send_to_ram2.RealTimePose[i]._33 = 1.0f; send_to_ram2.RealTimePose[i]._34 = 0.0f;
+		send_to_ram2.RealTimePose[i]._41 = t.x;	 send_to_ram2.RealTimePose[i]._42 = t.y;  send_to_ram2.RealTimePose[i]._43 = t.z;  send_to_ram2.RealTimePose[i]._44 = t.w;
 
 		//XMStoreFloat4x4(&send_to_ram2.RealTimePose[i], XMMatrixTranspose(XMMatrixLookAtLH(eye, at, up)));
 
 	}
-/////////////////
+	/////////////////
 	ZeroMemory(&mapResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
 	context->Map(modelAnimationConstBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapResource);
 	memcpy(mapResource.pData, &send_to_ram2, sizeof(ANIMATION_VRAM));
@@ -583,7 +584,7 @@ bool DEMO_APP::Run()
 
 #pragma endregion
 
-#pragma region debug point
+#pragma region debug
 	ZeroMemory(&mapResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
 	context->Map(pDebugPointBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapResource);
 	memcpy(mapResource.pData, &DebugPointData, sizeof(SIMPLE_VERTEX) * DebugPointCount);
@@ -639,7 +640,7 @@ bool DEMO_APP::ShutDown()
 
 	vertexshader->Release();
 	pixelshader->Release();
-	
+
 	constBuffer->Release();
 	modelAnimationConstBuffer->Release();
 	UnregisterClass(L"DirectXApplication", application);

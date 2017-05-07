@@ -1,5 +1,7 @@
-﻿  FBX.cpp
-c:\users\antonio-rog\desktop\p5\dx_hardware\fbx\fbx.cpp(633): warning C4018: '<': signed/unsigned mismatch
+﻿  stdafx.cpp
+  dllmain.cpp
+  FBX.cpp
+cl : Command line warning D9028: minimal rebuild failure, reverting to normal build
      Creating library C:\Users\Antonio-ROG\Desktop\P5\DX_Hardware\x64\Debug\FBX.lib and object C:\Users\Antonio-ROG\Desktop\P5\DX_Hardware\x64\Debug\FBX.exp
   FBX.vcxproj -> C:\Users\Antonio-ROG\Desktop\P5\DX_Hardware\x64\Debug\FBX.dll
   FBX.vcxproj -> C:\Users\Antonio-ROG\Desktop\P5\DX_Hardware\x64\Debug\FBX.pdb (Full PDB)

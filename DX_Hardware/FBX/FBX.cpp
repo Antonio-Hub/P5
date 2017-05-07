@@ -366,13 +366,13 @@ bool LoadMesh(FbxNode* node, unordered_map<unsigned int, ControlPoint*> mControl
 			GetTangent(currMesh, ctrlPointIndex, vertexCounter, tangent[j]);
 			BlendingVertex temp;
 			temp.mPosition = currCtrlPoint->mPosition;
-			temp.mPosition.z *= -1;
+			//temp.mPosition.z *= -1;
 			temp.mNormal = normal[j];
-			temp.mNormal.z *= -1;
+			//temp.mNormal.z *= -1;
 			temp.mUV = UV[j];
-			temp.mUV.y = 1.0f - temp.mUV.y;
+			//temp.mUV.y = 1.0f - temp.mUV.y;
 			temp.mTangent = tangent[j];
-			temp.mTangent.z *= -1;
+			//temp.mTangent.z *= -1;
 			for (unsigned int i = 0; i < currCtrlPoint->mBlendingInfo.size(); i++)
 			{
 				VertexBlending currBlendingInfo;
@@ -630,7 +630,7 @@ __declspec(dllexport) void function(char * fileName, char * outFileNameMesh, cha
 		if (file)
 		{
 			fwrite(&KeyFrameCount, sizeof(unsigned int), 1, file);
-			for (int i = 0; i < KeyFrameCount; i++)
+			for (size_t i = 0; i < KeyFrameCount; i++)
 			{
 				//unsigned int bone_size = (unsigned int)mSkeleton->joints[i]->bones.size();
 				unsigned int bone_size = (unsigned int)animation->Frames[i].Joints.size();
