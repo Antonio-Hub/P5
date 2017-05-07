@@ -166,8 +166,6 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	ShowWindow(window, SW_SHOW);
 #pragma endregion
 
-
-
 #pragma region swap chain device context
 	DXGI_SWAP_CHAIN_DESC scd;
 	ZeroMemory(&scd, sizeof(DXGI_SWAP_CHAIN_DESC));
@@ -246,7 +244,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 
 #pragma endregion
 
-#pragma region buffers
+#pragma region model buffers
 	D3D11_BUFFER_DESC bufferdescription;
 	D3D11_SUBRESOURCE_DATA InitData;
 	//teddy
@@ -344,7 +342,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	device->CreateBuffer(&bufferdescription, &InitData, &groundindexbuffer);
 #pragma endregion
 
-#pragma region debug
+#pragma region debug render buffers
 	//debug buffer
 	ZeroMemory(&bufferdescription, sizeof(D3D11_BUFFER_DESC));
 	bufferdescription.Usage = D3D11_USAGE_DYNAMIC;
@@ -357,6 +355,25 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	InitData.pSysMem = DebugPointData;
 	device->CreateBuffer(&bufferdescription, &InitData, &pDebugPointBuffer);
 
+	int index = 0;
+	for (size_t i = 0; i < bind_pose.size(); i++)
+	{
+		if (bind_pose[i].Parent_Index != -1)
+		{
+			DebugLineData[index].xyzw.x = bind_pose[bind_pose[i].Parent_Index].global_xform._41;
+			DebugLineData[index].xyzw.y = bind_pose[bind_pose[i].Parent_Index].global_xform._42;
+			DebugLineData[index].xyzw.z = bind_pose[bind_pose[i].Parent_Index].global_xform._43;
+			DebugLineData[index].xyzw.w = bind_pose[bind_pose[i].Parent_Index].global_xform._44;
+			index++;
+			DebugLineData[index].xyzw.x = bind_pose[i].global_xform._41;
+			DebugLineData[index].xyzw.y = bind_pose[i].global_xform._42;
+			DebugLineData[index].xyzw.z = bind_pose[i].global_xform._43;
+			DebugLineData[index].xyzw.w = bind_pose[i].global_xform._44;
+			index++;
+
+		}
+
+	}
 	ZeroMemory(&bufferdescription, sizeof(D3D11_BUFFER_DESC));
 	bufferdescription.Usage = D3D11_USAGE_DYNAMIC;
 	bufferdescription.ByteWidth = (UINT)(sizeof(SIMPLE_VERTEX) * DebugLineCount);
@@ -595,6 +612,34 @@ bool DEMO_APP::Run()
 	context->RSSetState(wireFrameRasterizerState);
 	context->Draw(DebugPointCount, 0);
 
+	int index = 0;
+	for (size_t i = 0; i < bind_pose.size(); i++)
+	{
+		if (bind_pose[i].Parent_Index != -1)
+		{
+			DebugLineData[index].xyzw.x = send_to_ram2.RealTimePose[bind_pose[i].Parent_Index]._41;
+			DebugLineData[index].xyzw.y = send_to_ram2.RealTimePose[bind_pose[i].Parent_Index]._42;
+			DebugLineData[index].xyzw.z = send_to_ram2.RealTimePose[bind_pose[i].Parent_Index]._43;
+			DebugLineData[index].xyzw.w = send_to_ram2.RealTimePose[bind_pose[i].Parent_Index]._44;
+			index++;
+			DebugLineData[index].xyzw.x = send_to_ram2.RealTimePose[i]._41;
+			DebugLineData[index].xyzw.y = send_to_ram2.RealTimePose[i]._42;
+			DebugLineData[index].xyzw.z = send_to_ram2.RealTimePose[i]._43;
+			DebugLineData[index].xyzw.w = send_to_ram2.RealTimePose[i]._44;
+			index++;
+
+		}
+
+	}
+	ZeroMemory(&mapResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
+	context->Map(pDebugLineBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapResource);
+	memcpy(mapResource.pData, &DebugLineData, sizeof(SIMPLE_VERTEX) * DebugLineCount);
+	context->Unmap(pDebugLineBuffer, 0);
+
+	context->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_LINELIST);
+	context->IASetVertexBuffers(0, 1, &pDebugLineBuffer, &stride, &offset);
+	context->RSSetState(wireFrameRasterizerState);
+	//context->Draw(DebugLineCount, 0);
 #pragma endregion
 
 #pragma region draw ground
