@@ -414,15 +414,16 @@ void ProcessGeometry(unordered_map<unsigned int, ControlPoint*>mControlPoints, S
 	}
 }
 struct my_fbx_joint { FbxNode * pNode; int Parent_Index; };
-void DepthFirstSearch(FbxNode * pNode, vector<my_fbx_joint> & Container, int Parent_Index)
+void DepthFirstSearch(FbxNode * pNode, vector<my_fbx_joint> & Container, int &parentIndex)
 {
 	my_fbx_joint * Joint = new my_fbx_joint;
 	Joint->pNode = pNode;
-	Joint->Parent_Index = Parent_Index++;
+	Joint->Parent_Index = parentIndex;
 	Container.push_back(*Joint);
-	for (size_t i = 0; i < (size_t)pNode->GetChildCount(); i++)
-		DepthFirstSearch(pNode->GetChild((int)i), Container, Parent_Index);
-			
+	int childCount = pNode->GetChildCount();
+	int LocalParentIndex = parentIndex+1;
+	for (int i = 0; i < childCount; i++)
+		DepthFirstSearch(pNode->GetChild((int)i), Container, ++parentIndex);
 }
 __declspec(dllexport) void function(char * fileName, char * outFileNameMesh, char * outFileNameBone, char * outFileNameAnimations, anim_clip* & animation, vector<vert_pos_skinned> & FileMesh)
 {
@@ -448,9 +449,27 @@ __declspec(dllexport) void function(char * fileName, char * outFileNameMesh, cha
 		pSkeleton = pNode->GetSkeleton();
 	} while (!pSkeleton);
 	FbxNode * pNode = pSkeleton->GetNode(0);
-	int ParentIndex = -1;
+	///////////////////////////////////////////////////////////////////////////
 	vector<my_fbx_joint> arrBindPose;
+	int ParentIndex = -1;
 	DepthFirstSearch(pNode, arrBindPose, ParentIndex);
+	//size_t outerindex = 0;
+	//FbxNode * pParent = nullptr;
+	//for (size_t innerindex = 0; innerindex < arrBindPose.size(); innerindex++)
+	//{
+	//	if (innerindex == outerindex)
+	//		continue;
+	//	pParent = nullptr;
+	//	pParent = arrBindPose[outerindex].pNode->GetParent();
+	//	if (pParent != nullptr)
+	//		if (pParent == arrBindPose[innerindex].pNode)
+	//		{
+	//			arrBindPose[outerindex].Parent_Index = (int)innerindex;
+	//			outerindex++;
+	//			innerindex = 0;
+	//		}
+	//}
+	///////////////////////////////////////////////////////////////////////////
 	vector<joint> arrTransforms;
 	for (size_t i = 0; i < arrBindPose.size(); i++)
 	{
@@ -561,10 +580,10 @@ __declspec(dllexport) void function(char * fileName, char * outFileNameMesh, cha
 		int * pControllPointIndices = pCluster->GetControlPointIndices();
 		for (size_t ControlPointIndex = 0; ControlPointIndex < ControlPointIndicesCount; ControlPointIndex++)
 		{
-	//		pWeights[pControllPointIndices[ControlPointIndex]];
-//			MeshVerts[pControllPointIndices[ControlPointIndex]].joints;
+			//		pWeights[pControllPointIndices[ControlPointIndex]];
+		//			MeshVerts[pControllPointIndices[ControlPointIndex]].joints;
 		}
-		
+
 	}
 
 

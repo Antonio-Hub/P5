@@ -621,11 +621,13 @@ bool DEMO_APP::Run()
 			DebugLineData[index].xyzw.y = send_to_ram2.RealTimePose[bind_pose[i].Parent_Index]._42;
 			DebugLineData[index].xyzw.z = send_to_ram2.RealTimePose[bind_pose[i].Parent_Index]._43;
 			DebugLineData[index].xyzw.w = send_to_ram2.RealTimePose[bind_pose[i].Parent_Index]._44;
+			DebugLineData[index].color = XMFLOAT4(1.0f, 0.0f, 0.0f, 0.0f);
 			index++;
 			DebugLineData[index].xyzw.x = send_to_ram2.RealTimePose[i]._41;
 			DebugLineData[index].xyzw.y = send_to_ram2.RealTimePose[i]._42;
 			DebugLineData[index].xyzw.z = send_to_ram2.RealTimePose[i]._43;
 			DebugLineData[index].xyzw.w = send_to_ram2.RealTimePose[i]._44;
+			DebugLineData[index].color = XMFLOAT4(0.0f, 0.0f, 1.0f, 0.0f);
 			index++;
 
 		}
@@ -639,7 +641,7 @@ bool DEMO_APP::Run()
 	context->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_LINELIST);
 	context->IASetVertexBuffers(0, 1, &pDebugLineBuffer, &stride, &offset);
 	context->RSSetState(wireFrameRasterizerState);
-	//context->Draw(DebugLineCount, 0);
+	context->Draw(DebugLineCount, 0);
 #pragma endregion
 
 #pragma region draw ground
