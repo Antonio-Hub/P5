@@ -1,6 +1,3 @@
-﻿  stdafx.cpp
-  dllmain.cpp
-  FBX.cpp
-     Creating library C:\Users\Antonio-ROG\Desktop\P5\DX_Hardware\x64\Debug\FBX.lib and object C:\Users\Antonio-ROG\Desktop\P5\DX_Hardware\x64\Debug\FBX.exp
+﻿  FBX.cpp
   FBX.vcxproj -> C:\Users\Antonio-ROG\Desktop\P5\DX_Hardware\x64\Debug\FBX.dll
   FBX.vcxproj -> C:\Users\Antonio-ROG\Desktop\P5\DX_Hardware\x64\Debug\FBX.pdb (Full PDB)

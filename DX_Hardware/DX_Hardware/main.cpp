@@ -1,9 +1,6 @@
 // CGS HW Project A "Line Land".
 // Author: L.Norri CD CGS, FullSail University
 
-//************************************************************
-//************ INCLUDES & DEFINES ****************************
-//************************************************************
 
 #include <iostream>
 #include <ctime>
@@ -24,7 +21,7 @@ using namespace DirectX;
 
 #include "../FBX/FBX.h"
 
-#pragma region mouse and keyboard imput class
+#pragma region mouse&keyboard imput class
 class Imput
 {
 public:
@@ -43,22 +40,55 @@ public:
 	bool bLeft = false;
 	bool bRight = false;
 	bool bSpace = false;
+	bool bHome = false;
 };
-
 Imput::Imput()
 {
 }
-
 Imput::~Imput()
 {
 }
-
 Imput imput;
 #pragma endregion
+#pragma region cam pos save
+class Save
+{
+public:
+	Save();
+	void LoadFromFile(XMFLOAT4X4 &data);
+	void SaveToFile(XMFLOAT4X4 data);
+	~Save();
 
-//************************************************************
-//************ SIMPLE WINDOWS APP CLASS **********************
-//************************************************************
+private:
+	char file[9]{ "save.bin" };
+	FILE * f = nullptr;
+	int error = 0;
+};
+Save::Save()
+{
+}
+void Save::LoadFromFile(XMFLOAT4X4 &data)
+{
+	error = fopen_s(&f, file, "rb");
+	if (error)
+		return;
+	fread(&data, sizeof(XMFLOAT4X4), 1, f);
+	fclose(f);
+	f = nullptr;
+}
+void Save::SaveToFile(XMFLOAT4X4 data)
+{
+	error = fopen_s(&f, file, "wb");
+	if (f)
+		fwrite(&data, sizeof(XMFLOAT4X4), 1, f);
+	fclose(f);
+	f = nullptr;
+}
+Save::~Save()
+{
+}
+Save save;
+#pragma endregion
 
 class DEMO_APP
 {
@@ -403,7 +433,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	static const XMVECTORF32 up = { 0.0f, 1.0f, 0.0f, 0.0f };
 	XMStoreFloat4x4(&camera, XMMatrixInverse(NULL, XMMatrixLookAtLH(eye, at, up)));
 	XMStoreFloat4x4(&send_to_ram.camView, XMMatrixTranspose(XMMatrixLookAtLH(eye, at, up)));
-
+	save.LoadFromFile(camera);
 	float aspectRatio = BACKBUFFER_WIDTH / BACKBUFFER_HEIGHT;
 	float fovAngleY = 70.0f * XM_PI / 180.0f;
 	if (aspectRatio < 1.0f)
@@ -510,12 +540,12 @@ bool DEMO_APP::Run()
 		imput.bRight = true;
 	}
 
-	if (!imput.buttons[VK_SPACE])
-		imput.bSpace = false;
-	if (imput.bSpace == false && imput.buttons[VK_SPACE])
+	if (!imput.buttons[VK_HOME])
+		imput.bHome = false;
+	if (imput.bHome == false && imput.buttons[VK_HOME])
 	{
-		animationPaused = !animationPaused;
-		imput.bSpace = true;
+		save.SaveToFile(camera);
+		imput.bHome = true;
 	}
 
 #pragma endregion
@@ -541,8 +571,6 @@ bool DEMO_APP::Run()
 #pragma endregion
 
 #pragma region draw model
-
-
 
 	////////////////////find current times animation index///////////////////
 	if (!animationPaused)
@@ -683,7 +711,7 @@ bool DEMO_APP::Run()
 	context->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_LINELIST);
 	context->IASetVertexBuffers(0, 1, &pDebugLineBuffer, &stride, &offset);
 	context->RSSetState(wireFrameRasterizerState);
-	context->Draw(DebugLineCount, 0);
+	context->Draw(8, 0);
 #pragma endregion
 
 #pragma region draw ground
@@ -700,7 +728,7 @@ bool DEMO_APP::Run()
 
 bool DEMO_APP::ShutDown()
 {
-
+	save.SaveToFile(camera);
 	device->Release();
 	swapchain->Release();
 	context->Release();

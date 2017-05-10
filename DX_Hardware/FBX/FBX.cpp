@@ -423,7 +423,7 @@ void DepthFirstSearch(FbxNode * pNode, vector<my_fbx_joint> & Container, int &pa
 	int childCount = pNode->GetChildCount();
 	int LocalParentIndex = parentIndex+1;
 	for (int i = 0; i < childCount; i++)
-		DepthFirstSearch(pNode->GetChild((int)i), Container, ++parentIndex);
+		DepthFirstSearch(pNode->GetChild((int)i), Container, LocalParentIndex);
 }
 __declspec(dllexport) void function(char * fileName, char * outFileNameMesh, char * outFileNameBone, char * outFileNameAnimations, anim_clip* & animation, vector<vert_pos_skinned> & FileMesh)
 {
@@ -684,7 +684,7 @@ __declspec(dllexport) void function(char * fileName, char * outFileNameMesh, cha
 }
 __declspec(dllexport) bool functionality(char * inFileNameMesh, char * inFileNameBone, char * inFileNameAnimations, unsigned int & triCount, vector<unsigned int>& triIndices, vector<BlendingVertex>& verts, vector<joint>& bind_pose)
 {
-	FILE * f;
+	FILE * f = nullptr;
 	bool bReturn = false;
 	fopen_s(&f, inFileNameMesh, "rb");
 	if (f)
