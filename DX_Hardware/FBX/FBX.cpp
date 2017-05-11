@@ -413,17 +413,33 @@ void ProcessGeometry(unordered_map<unsigned int, ControlPoint*>mControlPoints, S
 		ProcessGeometry(mControlPoints, mSkeleton, inNode->GetChild(i), triCount, triIndices, verts, hasAnimation, mScene, bind_pose, vertCount);
 	}
 }
-struct my_fbx_joint { FbxNode * pNode; int Parent_Index; };
-void DepthFirstSearch(FbxNode * pNode, vector<my_fbx_joint> & Container, int &parentIndex)
+struct my_fbx_joint { char Name[32]; int Parent_Index; FbxNode * pNode; };
+void DepthFirstSearch(FbxNode * pNode, vector<my_fbx_joint> & Container/*, int & parentIndex, int &number*/)
 {
 	my_fbx_joint * Joint = new my_fbx_joint;
 	Joint->pNode = pNode;
-	Joint->Parent_Index = parentIndex;
+	for (size_t i = 0; i < 32; i++)
+		if (pNode->GetName()[i] != NULL)
+			Joint->Name[i] = pNode->GetName()[i];
+		else
+		{
+			Joint->Name[i] = NULL;
+			break;
+		}
+
+	//Joint->Parent_Index = (parentIndex + number);
 	Container.push_back(*Joint);
 	int childCount = pNode->GetChildCount();
-	int LocalParentIndex = parentIndex+1;
 	for (int i = 0; i < childCount; i++)
-		DepthFirstSearch(pNode->GetChild((int)i), Container, LocalParentIndex);
+	{
+		//	parentIndex += 1;
+		DepthFirstSearch(pNode->GetChild((int)i), Container/*, parentIndex, number*/);
+		//if (!number)
+			//number += 2;
+		//else
+			//number++;
+	}
+	//	parentIndex -= 1;
 }
 __declspec(dllexport) void function(char * fileName, char * outFileNameMesh, char * outFileNameBone, char * outFileNameAnimations, anim_clip* & animation, vector<vert_pos_skinned> & FileMesh)
 {
@@ -451,25 +467,23 @@ __declspec(dllexport) void function(char * fileName, char * outFileNameMesh, cha
 	FbxNode * pNode = pSkeleton->GetNode(0);
 	///////////////////////////////////////////////////////////////////////////
 	vector<my_fbx_joint> arrBindPose;
-	int ParentIndex = -1;
-	DepthFirstSearch(pNode, arrBindPose, ParentIndex);
-	//size_t outerindex = 0;
-	//FbxNode * pParent = nullptr;
-	//for (size_t innerindex = 0; innerindex < arrBindPose.size(); innerindex++)
-	//{
-	//	if (innerindex == outerindex)
-	//		continue;
-	//	pParent = nullptr;
-	//	pParent = arrBindPose[outerindex].pNode->GetParent();
-	//	if (pParent != nullptr)
-	//		if (pParent == arrBindPose[innerindex].pNode)
-	//		{
-	//			arrBindPose[outerindex].Parent_Index = (int)innerindex;
-	//			outerindex++;
-	//			innerindex = 0;
-	//		}
-	//}
+	DepthFirstSearch(pNode, arrBindPose/*, ParentIndex, number*/);
+	arrBindPose[0].Parent_Index = -1;
+	
+	for (size_t i = 1; i < arrBindPose.size(); i++)
+	{
+		for (size_t j = 0; j < arrBindPose.size(); j++)
+		{
+			if (arrBindPose[i].pNode->GetParent() == arrBindPose[j].pNode)
+			{
+				arrBindPose[i].Parent_Index = j;
+			}
+
+		}
+	}
 	///////////////////////////////////////////////////////////////////////////
+	
+	
 	vector<joint> arrTransforms;
 	for (size_t i = 0; i < arrBindPose.size(); i++)
 	{

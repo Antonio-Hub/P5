@@ -535,11 +535,18 @@ bool DEMO_APP::Run()
 	if (imput.bRight == false && imput.buttons[VK_RIGHT])
 	{
 		if (animationPaused)
-			if (++keyframeAnimIndex > keyFrameCount-1)
+			if (++keyframeAnimIndex > (int)keyFrameCount-1)
 				keyframeAnimIndex = 0;
 		imput.bRight = true;
 	}
 
+	if (!imput.buttons[VK_SPACE])
+		imput.bSpace = false;
+	if (imput.bSpace == false && imput.buttons[VK_SPACE])
+	{
+		animationPaused = !animationPaused;
+		imput.bSpace = true;
+	}
 	if (!imput.buttons[VK_HOME])
 		imput.bHome = false;
 	if (imput.bHome == false && imput.buttons[VK_HOME])
@@ -711,7 +718,7 @@ bool DEMO_APP::Run()
 	context->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_LINELIST);
 	context->IASetVertexBuffers(0, 1, &pDebugLineBuffer, &stride, &offset);
 	context->RSSetState(wireFrameRasterizerState);
-	context->Draw(8, 0);
+	context->Draw(DebugLineCount, 0);
 #pragma endregion
 
 #pragma region draw ground
