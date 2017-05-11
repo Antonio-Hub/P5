@@ -465,7 +465,7 @@ __declspec(dllexport) void function(char * fileName, char * outFileNameMesh, cha
 		pSkeleton = pNode->GetSkeleton();
 	} while (!pSkeleton);
 	FbxNode * pNode = pSkeleton->GetNode(0);
-	///////////////////////////////////////////////////////////////////////////
+	//The inner loop can be reversed to redude the amount of nodes to resrch through//////
 	vector<my_fbx_joint> arrBindPose;
 	DepthFirstSearch(pNode, arrBindPose/*, ParentIndex, number*/);
 	arrBindPose[0].Parent_Index = -1;
@@ -476,12 +476,12 @@ __declspec(dllexport) void function(char * fileName, char * outFileNameMesh, cha
 		{
 			if (arrBindPose[i].pNode->GetParent() == arrBindPose[j].pNode)
 			{
-				arrBindPose[i].Parent_Index = j;
+				arrBindPose[i].Parent_Index = (int)j;
 			}
 
 		}
 	}
-	///////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////////////
 	
 	
 	vector<joint> arrTransforms;

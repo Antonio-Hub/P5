@@ -28,6 +28,20 @@ cbuffer THIS_IS_ANIMATION_VRAM : register(b1)
 OUTPUT_VERTEX main( INPUT_VERTEX fromVertexBuffer )
 {
 	float4 pos = float4(fromVertexBuffer.coordinate.xyz,1.0f);
+
+	pos += mul(pos, inverseBindPose[(int)fromVertexBuffer.index.x]) * fromVertexBuffer.weight.x;
+	pos += mul(pos, transpose(realTimePose[(int)fromVertexBuffer.index.x]))* fromVertexBuffer.weight.x;
+
+	pos += mul(pos, inverseBindPose[(int)fromVertexBuffer.index.y]) * fromVertexBuffer.weight.y;
+	pos += mul(pos, transpose(realTimePose[(int)fromVertexBuffer.index.y]))* fromVertexBuffer.weight.y;
+
+	pos += mul(pos, inverseBindPose[(int)fromVertexBuffer.index.z]) * fromVertexBuffer.weight.z;
+	pos += mul(pos, transpose(realTimePose[(int)fromVertexBuffer.index.z]))* fromVertexBuffer.weight.z;
+
+	pos += mul(pos, inverseBindPose[(int)fromVertexBuffer.index.w]) * fromVertexBuffer.weight.w;
+	pos += mul(pos, transpose(realTimePose[(int)fromVertexBuffer.index.w]))* fromVertexBuffer.weight.w;
+
+	//pos.w = 1.0f;
 	pos = mul(pos, modelPos);
 	pos = mul(pos, camView);
 	pos = mul(pos, camProj);

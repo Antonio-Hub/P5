@@ -41,6 +41,7 @@ public:
 	bool bRight = false;
 	bool bSpace = false;
 	bool bHome = false;
+	bool bTab = false;
 };
 Imput::Imput()
 {
@@ -50,6 +51,7 @@ Imput::~Imput()
 }
 Imput imput;
 #pragma endregion
+
 #pragma region cam pos save
 class Save
 {
@@ -116,6 +118,7 @@ private:
 	ID3D11DepthStencilView * depthStencilView = nullptr;
 	ID3D11RasterizerState * wireFrameRasterizerState = nullptr;
 	ID3D11RasterizerState * SolidRasterizerState = nullptr;
+	bool RenderWireFrame = false;
 
 	//model mesh
 	vector<vert_pos_skinned> FileMesh;
@@ -454,7 +457,14 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	InitData.pSysMem = &send_to_ram;
 	device->CreateBuffer(&bufferdescription, &InitData, &constBuffer);
 
-
+	XMMATRIX m = XMMatrixIdentity();
+	for (size_t i = 0; i < bind_pose.size(); i++)
+	{
+		m = XMLoadFloat4x4(&bind_pose[i].global_xform);
+		m = XMMatrixInverse(nullptr, m);
+		m = XMMatrixTranspose(m);
+		XMStoreFloat4x4(&send_to_ram2.InverseBindPose[i], m);
+	}
 	ZeroMemory(&bufferdescription, sizeof(D3D11_BUFFER_DESC));
 	bufferdescription.Usage = D3D11_USAGE_DYNAMIC;
 	bufferdescription.ByteWidth = sizeof(ANIMATION_VRAM);
@@ -554,6 +564,13 @@ bool DEMO_APP::Run()
 		save.SaveToFile(camera);
 		imput.bHome = true;
 	}
+	if (!imput.buttons[VK_TAB])
+		imput.bTab = false;
+	if (imput.bTab == false && imput.buttons[VK_TAB])
+	{
+		RenderWireFrame = !RenderWireFrame;
+		imput.bTab = true;
+	}
 
 #pragma endregion
 
@@ -634,15 +651,21 @@ bool DEMO_APP::Run()
 			send_to_ram2.RealTimePose[i]._21 = 0.0f; send_to_ram2.RealTimePose[i]._22 = 1.0f; send_to_ram2.RealTimePose[i]._23 = 0.0f; send_to_ram2.RealTimePose[i]._24 = 0.0f;
 			send_to_ram2.RealTimePose[i]._31 = 0.0f; send_to_ram2.RealTimePose[i]._32 = 0.0f; send_to_ram2.RealTimePose[i]._33 = 1.0f; send_to_ram2.RealTimePose[i]._34 = 0.0f;
 			send_to_ram2.RealTimePose[i]._41 = t.x;	 send_to_ram2.RealTimePose[i]._42 = t.y;  send_to_ram2.RealTimePose[i]._43 = t.z;  send_to_ram2.RealTimePose[i]._44 = t.w;
-
-			//XMStoreFloat4x4(&send_to_ram2.RealTimePose[i], XMMatrixTranspose(XMMatrixLookAtLH(eye, at, up)));
+			XMVECTOR at = XMLoadFloat4(&XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f));
+			XMVECTOR up = XMLoadFloat4(&XMFLOAT4(0.0f, 1.0f, 0.0f, 0.0f));
+		//	XMStoreFloat4x4(&send_to_ram2.RealTimePose[i], XMMatrixTranspose(XMMatrixLookAtLH(eye, at, up)));
 
 		}
 	}
 	else
 	{
+			XMMATRIX m = XMMatrixIdentity();
 		for (size_t i = 0; i < boneCount; i++)
 		{
+			m = XMLoadFloat4x4(&IdleAnimationData->Frames[keyframeAnimIndex].Joints[i]);
+			m = XMMatrixTranspose(m);
+			XMStoreFloat4x4(&send_to_ram2.RealTimePose[i], m);
+
 			send_to_ram2.RealTimePose[i] = IdleAnimationData->Frames[keyframeAnimIndex].Joints[i];
 			DebugPointData[i].xyzw.x = send_to_ram2.RealTimePose[i]._41;
 			DebugPointData[i].xyzw.y = send_to_ram2.RealTimePose[i]._42;
@@ -660,7 +683,10 @@ bool DEMO_APP::Run()
 	context->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	context->IASetVertexBuffers(0, 1, &modelvertbuffer, &stride, &offset);
 	context->IASetIndexBuffer(modelindexbuffer, DXGI_FORMAT_R32_UINT, offset);
-	context->RSSetState(wireFrameRasterizerState);
+	if (!RenderWireFrame)
+		context->RSSetState(wireFrameRasterizerState);
+	else
+		context->RSSetState(SolidRasterizerState);
 	context->DrawIndexed(modelindexCount, 0, 0);
 
 #pragma endregion
