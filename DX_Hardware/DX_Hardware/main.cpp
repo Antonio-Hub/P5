@@ -4,12 +4,14 @@
 
 #include <iostream>
 #include <ctime>
+#include "DDSTextureLoader.h"
 #include "XTime.h"
 #include <windowsx.h>
 using namespace std;
 
 #include <d3d11.h>
 #pragma comment(lib,"d3d11.lib")
+#pragma comment(lib,"User32.lib")
 
 #include <DirectXMath.h>
 using namespace DirectX;
@@ -107,6 +109,7 @@ private:
 	HINSTANCE						application;
 	WNDPROC							appWndProc;
 	HWND							window;
+	HRESULT							HR;
 
 	ID3D11Device *device = NULL;
 	IDXGISwapChain *swapchain = NULL;
@@ -121,6 +124,7 @@ private:
 	bool RenderWireFrame = false;
 
 	//model mesh
+	ID3D11ShaderResourceView * pModelTexture = nullptr;
 	vector<vert_pos_skinned> FileMesh;
 	ID3D11Buffer * modelvertbuffer = NULL;
 	ID3D11Buffer * modelindexbuffer = NULL;
@@ -274,7 +278,10 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	// 0.0 1.0 0.0 0.0
 	// 0.0 0.0 1.0 0.0
 	// x   y   z   w
-	function(file, mesh, bone, animation, IdleAnimationData, FileMesh);
+	vert_pos_skinned * pTheVerts = nullptr;
+	int VertCount = 0;
+	int * pVertIndices = nullptr;
+	function(file, mesh, bone, animation, IdleAnimationData, pTheVerts, VertCount, pVertIndices);
 	functionality(mesh, bone, animation, triCount, triIndices, verts, bind_pose);
 
 	keyFrameCount = (int)IdleAnimationData->Frames.size();
@@ -282,32 +289,45 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	animLoopTime = IdleAnimationData->Duration;
 #pragma endregion
 
-#pragma region model buffers
+#pragma region models
+
 	D3D11_BUFFER_DESC bufferdescription;
 	D3D11_SUBRESOURCE_DATA InitData;
 	//teddy
-	modelVertCount = (unsigned int)verts.size();
+	modelVertCount = (unsigned int)VertCount;
 	realTimeModel = new SIMPLE_VERTEX[modelVertCount];
-	float modelColor[4]{ 1.0f, 1.0f, 1.0f, 0.0f };
+	XMFLOAT4 VertColor{ 1.0f, 1.0f, 1.0f, 0.0f };
 	for (size_t i = 0; i < modelVertCount; i++)
 	{
-		realTimeModel[i].xyzw.x = verts[i].mPosition.x;
-		realTimeModel[i].xyzw.y = verts[i].mPosition.y;
-		realTimeModel[i].xyzw.z = verts[i].mPosition.z;
-		realTimeModel[i].xyzw.w = 1.0f;
-		realTimeModel[i].color.x = modelColor[0];
-		realTimeModel[i].color.y = modelColor[1];
-		realTimeModel[i].color.z = modelColor[2];
-		realTimeModel[i].color.w = modelColor[3];
-		realTimeModel[i].index.x = (float)verts[i].mVertexBlendingInfos[0].mBlendingIndex;
-		realTimeModel[i].index.y = (float)verts[i].mVertexBlendingInfos[1].mBlendingIndex;
-		realTimeModel[i].index.z = (float)verts[i].mVertexBlendingInfos[2].mBlendingIndex;
-		realTimeModel[i].index.w = (float)verts[i].mVertexBlendingInfos[3].mBlendingIndex;
-		realTimeModel[i].weights.x = (float)verts[i].mVertexBlendingInfos[0].mBlendWeight;
-		realTimeModel[i].weights.y = (float)verts[i].mVertexBlendingInfos[1].mBlendWeight;
-		realTimeModel[i].weights.z = (float)verts[i].mVertexBlendingInfos[2].mBlendWeight;
-		realTimeModel[i].weights.w = (float)verts[i].mVertexBlendingInfos[3].mBlendWeight;
+		realTimeModel[i].xyzw = pTheVerts[i].pos;
+		realTimeModel[i].color = VertColor;
+		realTimeModel[i].index = XMFLOAT4(pTheVerts[i].joints[0], pTheVerts[i].joints[1], pTheVerts[i].joints[2], pTheVerts[i].joints[3]);
+		realTimeModel[i].weights = XMFLOAT4(pTheVerts[i].weights[0], pTheVerts[i].weights[1], pTheVerts[i].weights[2], pTheVerts[i].weights[3]);
 	}
+
+
+	//modelVertCount = (unsigned int)verts.size();
+	//realTimeModel = new SIMPLE_VERTEX[modelVertCount];
+	//float modelColor[4]{ 1.0f, 1.0f, 1.0f, 0.0f };
+	//for (size_t i = 0; i < modelVertCount; i++)
+	//{
+	//	realTimeModel[i].xyzw.x = verts[i].mPosition.x;
+	//	realTimeModel[i].xyzw.y = verts[i].mPosition.y;
+	//	realTimeModel[i].xyzw.z = verts[i].mPosition.z;
+	//	realTimeModel[i].xyzw.w = 1.0f;
+	//	realTimeModel[i].color.x = modelColor[0];
+	//	realTimeModel[i].color.y = modelColor[1];
+	//	realTimeModel[i].color.z = modelColor[2];
+	//	realTimeModel[i].color.w = modelColor[3];
+	//	realTimeModel[i].index.x = (float)verts[i].mVertexBlendingInfos[0].mBlendingIndex;
+	//	realTimeModel[i].index.y = (float)verts[i].mVertexBlendingInfos[1].mBlendingIndex;
+	//	realTimeModel[i].index.z = (float)verts[i].mVertexBlendingInfos[2].mBlendingIndex;
+	//	realTimeModel[i].index.w = (float)verts[i].mVertexBlendingInfos[3].mBlendingIndex;
+	//	realTimeModel[i].weights.x = (float)verts[i].mVertexBlendingInfos[0].mBlendWeight;
+	//	realTimeModel[i].weights.y = (float)verts[i].mVertexBlendingInfos[1].mBlendWeight;
+	//	realTimeModel[i].weights.z = (float)verts[i].mVertexBlendingInfos[2].mBlendWeight;
+	//	realTimeModel[i].weights.w = (float)verts[i].mVertexBlendingInfos[3].mBlendWeight;
+	//}
 
 
 
@@ -380,6 +400,10 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	device->CreateBuffer(&bufferdescription, &InitData, &groundindexbuffer);
 #pragma endregion
 
+#pragma region textures
+	HR = CreateDDSTextureFromFile(device, L"Teddy_D.dds", nullptr, &pModelTexture);
+#pragma endregion
+
 #pragma region debug render buffers
 	//debug buffer
 	ZeroMemory(&bufferdescription, sizeof(D3D11_BUFFER_DESC));
@@ -434,8 +458,8 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	static const XMVECTORF32 eye = { 0.0f, 350.0f, 300.0f, 0.0f };
 	static const XMVECTORF32 at = { 0.0f, 0.0f, 0.0f, 0.0f };
 	static const XMVECTORF32 up = { 0.0f, 1.0f, 0.0f, 0.0f };
-	XMStoreFloat4x4(&camera, XMMatrixInverse(NULL, XMMatrixLookAtLH(eye, at, up)));
-	XMStoreFloat4x4(&send_to_ram.camView, XMMatrixTranspose(XMMatrixLookAtLH(eye, at, up)));
+	XMStoreFloat4x4(&camera, XMMatrixInverse(NULL, XMMatrixLookAtRH(eye, at, up)));
+	XMStoreFloat4x4(&send_to_ram.camView, XMMatrixTranspose(XMMatrixLookAtRH(eye, at, up)));
 	save.LoadFromFile(camera);
 	float aspectRatio = BACKBUFFER_WIDTH / BACKBUFFER_HEIGHT;
 	float fovAngleY = 70.0f * XM_PI / 180.0f;
@@ -503,7 +527,7 @@ bool DEMO_APP::Run()
 	if (currAnimTime > animLoopTime)
 		currAnimTime = 0.0;
 #pragma endregion
-
+	
 #pragma region update
 	XMMATRIX newcamera = XMLoadFloat4x4(&camera);
 	if (imput.buttons['W'])
@@ -596,27 +620,20 @@ bool DEMO_APP::Run()
 
 #pragma region draw model
 
-	////////////////////find current times animation index///////////////////
 	if (!animationPaused)
 		for (size_t i = 0; i < keyFrameCount; i++)
 			if (currAnimTime > IdleAnimationData->Frames[i].Time)
 				keyframeAnimIndex = (unsigned int)i;
-	///////////////////
 
-	////store the time stamp for the keyframe infront and behind current time////
 	ZeroMemory(twoKeyFrameTimes, sizeof(double) * 2);
 	twoKeyFrameTimes[0] = IdleAnimationData->Frames[keyframeAnimIndex].Time;
 	if ((unsigned)keyframeAnimIndex + 1 < keyFrameCount)
 		twoKeyFrameTimes[1] = IdleAnimationData->Frames[keyframeAnimIndex + 1].Time;
 	else
 		twoKeyFrameTimes[1] = IdleAnimationData->Frames[0].Time;
-	////
 
-	///////////////////calculate ratio between keyframes//////////////////////////
 	double ratio = (currAnimTime - twoKeyFrameTimes[0]) / (twoKeyFrameTimes[1] - twoKeyFrameTimes[0]);
-	///////////////////
 
-	/////////////////slerp between two key frames using ratio/////////////////////
 	if (!animationPaused)
 	{
 
@@ -653,7 +670,7 @@ bool DEMO_APP::Run()
 			send_to_ram2.RealTimePose[i]._41 = t.x;	 send_to_ram2.RealTimePose[i]._42 = t.y;  send_to_ram2.RealTimePose[i]._43 = t.z;  send_to_ram2.RealTimePose[i]._44 = t.w;
 			XMVECTOR at = XMLoadFloat4(&XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f));
 			XMVECTOR up = XMLoadFloat4(&XMFLOAT4(0.0f, 1.0f, 0.0f, 0.0f));
-		//	XMStoreFloat4x4(&send_to_ram2.RealTimePose[i], XMMatrixTranspose(XMMatrixLookAtLH(eye, at, up)));
+		//	XMStoreFloat4x4(&send_to_ram2.RealTimePose[i], XMMatrixTranspose(XMMatrixLookAtRH(eye, at, up)));
 
 		}
 	}
@@ -674,7 +691,7 @@ bool DEMO_APP::Run()
 
 		}
 	}
-	/////////////////
+
 	ZeroMemory(&mapResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
 	context->Map(modelAnimationConstBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapResource);
 	memcpy(mapResource.pData, &send_to_ram2, sizeof(ANIMATION_VRAM));

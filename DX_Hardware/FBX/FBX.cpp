@@ -441,7 +441,7 @@ void DepthFirstSearch(FbxNode * pNode, vector<my_fbx_joint> & Container/*, int &
 	}
 	//	parentIndex -= 1;
 }
-__declspec(dllexport) void function(char * fileName, char * outFileNameMesh, char * outFileNameBone, char * outFileNameAnimations, anim_clip* & animation, vector<vert_pos_skinned> & FileMesh)
+__declspec(dllexport) void function(char * fileName, char * outFileNameMesh, char * outFileNameBone, char * outFileNameAnimations, anim_clip* & animation, vert_pos_skinned* & FileMesh, int & VertCount, int* & VertIndices)
 {
 
 	FbxManager * pManager = FbxManager::Create();
@@ -550,57 +550,62 @@ __declspec(dllexport) void function(char * fileName, char * outFileNameMesh, cha
 		pMesh = pNode->GetMesh();
 	} while (!pMesh);
 
-	unsigned int ctrlPointCount = pMesh->GetControlPointsCount();
-	vector<vert_pos_skinned> MeshVerts;
-
-	for (unsigned int i = 0; i < ctrlPointCount; i++)
+	vert_pos_skinned * pTheMeshVerts = new vert_pos_skinned[pMesh->GetControlPointsCount()];
+	int IndiceCount = pMesh->GetPolygonVertexCount();
+	int * pTheMeshIndices = new int[IndiceCount];
+	pTheMeshIndices = pMesh->GetPolygonVertices();
+	VertIndices = pTheMeshIndices;
+	VertCount = pMesh->GetControlPointsCount();
+	for (int i = 0, j = 0; i < pMesh->GetControlPointsCount(); i++)
 	{
-		vert_pos_skinned* currCtrlPoint = new vert_pos_skinned();
-		currCtrlPoint->pos.w = 1.0f;
-		currCtrlPoint->pos.x = (float)pMesh->GetControlPointAt(i).mData[0];
-		currCtrlPoint->pos.y = (float)pMesh->GetControlPointAt(i).mData[1];
-		currCtrlPoint->pos.z = (float)pMesh->GetControlPointAt(i).mData[2];
-		currCtrlPoint->joints[0] = 0;
-		currCtrlPoint->joints[1] = 0;
-		currCtrlPoint->joints[2] = 0;
-		currCtrlPoint->joints[3] = 0;
+		FbxVector4 v = pMesh->GetControlPointAt(i);
+		pTheMeshVerts[j].pos.x = (float)v.mData[0];
+		pTheMeshVerts[j].pos.y = (float)v.mData[1];
+		pTheMeshVerts[j].pos.z = (float)v.mData[2];
+		pTheMeshVerts[j++].pos.w = (float)v.mData[3];
 
-		MeshVerts.push_back(*currCtrlPoint);
 	}
-
-
-	int DeformerCount = pMesh->GetDeformerCount();
-	//FbxDeformer * Deformer = pMesh->GetDeformer(0);
-	//FbxDeformer::EDeformerType DeformerType = Deformer->GetDeformerType();
+	
+	
+	
+	
+	
+	
+	
+	
 	FbxSkin * pSkin = (FbxSkin*)pMesh->GetDeformer(0);
-	int ClusterCount = pSkin->GetClusterCount();
-	FbxNode * pIndexNode = nullptr;
-	for (size_t ClusterIndex = 0; ClusterIndex < ClusterCount; ClusterIndex++)
+
+	for (size_t ClusterIndex = 0; ClusterIndex < pSkin->GetClusterCount(); ClusterIndex++)
 	{
 		FbxCluster *pCluster = pSkin->GetCluster((int)ClusterIndex);
-		FbxNode * pNode = pCluster->GetLink();
+		FbxNode * pLinkedNode = nullptr;
+		pLinkedNode = pCluster->GetLink();
+		FbxNode * pIndexNode = nullptr;
 		count = 0;
-		pIndexNode = nullptr;
 		do
 		{
 			pIndexNode = arrBindPose[count++].pNode;
-			//pIndexNode = pBindPose->GetNode(count++);
 		} while (pNode != pIndexNode);
 		count--;
 
-		int ControlPointIndicesCount = pCluster->GetControlPointIndicesCount();
 
 		double * pWeights = pCluster->GetControlPointWeights();
 		int * pControllPointIndices = pCluster->GetControlPointIndices();
-		for (size_t ControlPointIndex = 0; ControlPointIndex < ControlPointIndicesCount; ControlPointIndex++)
+		for (size_t affectedVertIndex = 0; affectedVertIndex < pCluster->GetControlPointIndicesCount(); affectedVertIndex++)
 		{
-			//		pWeights[pControllPointIndices[ControlPointIndex]];
-		//			MeshVerts[pControllPointIndices[ControlPointIndex]].joints;
+			int index = 0;
+			while (pTheMeshVerts[pControllPointIndices[affectedVertIndex]].weights[index] != 0.0f)
+			{
+				index += 1;
+			}
+			pTheMeshVerts[pControllPointIndices[affectedVertIndex]].joints[index] = count;
+			pTheMeshVerts[pControllPointIndices[affectedVertIndex]].weights[index] = (float)pWeights[affectedVertIndex];
+
 		}
 
 	}
 
-
+	FileMesh = pTheMeshVerts;
 
 
 
