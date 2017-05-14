@@ -281,7 +281,8 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	vert_pos_skinned * pTheVerts = nullptr;
 	int VertCount = 0;
 	int * pVertIndices = nullptr;
-	function(file, mesh, bone, animation, IdleAnimationData, pTheVerts, VertCount, pVertIndices);
+	int IndicesCount = 0;
+	function(file, mesh, bone, animation, IdleAnimationData, pTheVerts, VertCount, pVertIndices, IndicesCount);
 	functionality(mesh, bone, animation, triCount, triIndices, verts, bind_pose);
 
 	keyFrameCount = (int)IdleAnimationData->Frames.size();
@@ -301,8 +302,32 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	{
 		realTimeModel[i].xyzw = pTheVerts[i].pos;
 		realTimeModel[i].color = VertColor;
-		realTimeModel[i].index = XMFLOAT4(pTheVerts[i].joints[0], pTheVerts[i].joints[1], pTheVerts[i].joints[2], pTheVerts[i].joints[3]);
-		realTimeModel[i].weights = XMFLOAT4(pTheVerts[i].weights[0], pTheVerts[i].weights[1], pTheVerts[i].weights[2], pTheVerts[i].weights[3]);
+		for (int j = 0; j < pTheVerts[i].joints.size(); j++)
+		{
+			if (j == 0)
+				realTimeModel[i].index.x = (float)pTheVerts[i].joints[0];
+			else if (j == 1)
+				realTimeModel[i].index.y = (float)pTheVerts[i].joints[1];
+			else if (j == 2)
+				realTimeModel[i].index.z = (float)pTheVerts[i].joints[2];
+			else if (j == 3)
+				realTimeModel[i].index.w = (float)pTheVerts[i].joints[3];
+		}
+
+		for (int j = 0; j < pTheVerts[i].weights.size(); j++)
+		{
+			if (j == 0)
+				realTimeModel[i].weights.x = pTheVerts[i].weights[0];
+			else if (j == 1)
+				realTimeModel[i].weights.y = pTheVerts[i].weights[1];
+			else if (j == 2)
+				realTimeModel[i].weights.z = pTheVerts[i].weights[2];
+			else if (j == 3)
+				realTimeModel[i].weights.w = pTheVerts[i].weights[3];
+		}
+
+		//realTimeModel[i].index = XMFLOAT4(pTheVerts[i].joints[0], pTheVerts[i].joints[1], pTheVerts[i].joints[2], pTheVerts[i].joints[3]);
+		//realTimeModel[i].weights = XMFLOAT4(pTheVerts[i].weights[0], pTheVerts[i].weights[1], pTheVerts[i].weights[2], pTheVerts[i].weights[3]);
 	}
 
 
@@ -342,16 +367,22 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	InitData.pSysMem = realTimeModel;
 	device->CreateBuffer(&bufferdescription, &InitData, &modelvertbuffer);
 
-
-	modelindexCount = (unsigned int)triIndices.size();
+	modelindexCount = (unsigned int)IndicesCount;
 	unsigned int * modelIndex;
 	modelIndex = new unsigned int[modelindexCount];
 	for (size_t i = 0; i < modelindexCount; i++)
-		modelIndex[i] = triIndices[i];
+		modelIndex[i] = (unsigned int)pVertIndices[i];
+
+
+	/*modelindexCount = (unsigned int)triIndices.size();
+	unsigned int * modelIndex;
+	modelIndex = new unsigned int[modelindexCount];
+	for (size_t i = 0; i < modelindexCount; i++)
+		modelIndex[i] = triIndices[i];*/
 
 	ZeroMemory(&bufferdescription, sizeof(D3D11_BUFFER_DESC));
 	bufferdescription.Usage = D3D11_USAGE_IMMUTABLE;
-	bufferdescription.ByteWidth = (UINT)(sizeof(unsigned int) * triIndices.size());
+	bufferdescription.ByteWidth = (UINT)(sizeof(unsigned int) * modelindexCount);
 	bufferdescription.BindFlags = D3D11_BIND_INDEX_BUFFER;
 	bufferdescription.CPUAccessFlags = NULL;
 	bufferdescription.MiscFlags = NULL;
@@ -527,7 +558,7 @@ bool DEMO_APP::Run()
 	if (currAnimTime > animLoopTime)
 		currAnimTime = 0.0;
 #pragma endregion
-	
+
 #pragma region update
 	XMMATRIX newcamera = XMLoadFloat4x4(&camera);
 	if (imput.buttons['W'])
@@ -560,7 +591,7 @@ bool DEMO_APP::Run()
 	{
 		if (animationPaused)
 			if (--keyframeAnimIndex < 0)
-				keyframeAnimIndex = keyFrameCount-1;
+				keyframeAnimIndex = keyFrameCount - 1;
 		imput.bLeft = true;
 	}
 
@@ -569,7 +600,7 @@ bool DEMO_APP::Run()
 	if (imput.bRight == false && imput.buttons[VK_RIGHT])
 	{
 		if (animationPaused)
-			if (++keyframeAnimIndex > (int)keyFrameCount-1)
+			if (++keyframeAnimIndex > (int)keyFrameCount - 1)
 				keyframeAnimIndex = 0;
 		imput.bRight = true;
 	}
@@ -670,13 +701,13 @@ bool DEMO_APP::Run()
 			send_to_ram2.RealTimePose[i]._41 = t.x;	 send_to_ram2.RealTimePose[i]._42 = t.y;  send_to_ram2.RealTimePose[i]._43 = t.z;  send_to_ram2.RealTimePose[i]._44 = t.w;
 			XMVECTOR at = XMLoadFloat4(&XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f));
 			XMVECTOR up = XMLoadFloat4(&XMFLOAT4(0.0f, 1.0f, 0.0f, 0.0f));
-		//	XMStoreFloat4x4(&send_to_ram2.RealTimePose[i], XMMatrixTranspose(XMMatrixLookAtRH(eye, at, up)));
+			//	XMStoreFloat4x4(&send_to_ram2.RealTimePose[i], XMMatrixTranspose(XMMatrixLookAtRH(eye, at, up)));
 
 		}
 	}
 	else
 	{
-			XMMATRIX m = XMMatrixIdentity();
+		XMMATRIX m = XMMatrixIdentity();
 		for (size_t i = 0; i < boneCount; i++)
 		{
 			m = XMLoadFloat4x4(&IdleAnimationData->Frames[keyframeAnimIndex].Joints[i]);

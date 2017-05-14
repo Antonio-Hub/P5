@@ -441,7 +441,7 @@ void DepthFirstSearch(FbxNode * pNode, vector<my_fbx_joint> & Container/*, int &
 	}
 	//	parentIndex -= 1;
 }
-__declspec(dllexport) void function(char * fileName, char * outFileNameMesh, char * outFileNameBone, char * outFileNameAnimations, anim_clip* & animation, vert_pos_skinned* & FileMesh, int & VertCount, int* & VertIndices)
+__declspec(dllexport) void function(char * fileName, char * outFileNameMesh, char * outFileNameBone, char * outFileNameAnimations, anim_clip* & animation, vert_pos_skinned* & FileMesh, int & VertCount, int* & VertIndices, int & IndicesCount)
 {
 
 	FbxManager * pManager = FbxManager::Create();
@@ -550,8 +550,9 @@ __declspec(dllexport) void function(char * fileName, char * outFileNameMesh, cha
 		pMesh = pNode->GetMesh();
 	} while (!pMesh);
 
-	vert_pos_skinned * pTheMeshVerts = new vert_pos_skinned[pMesh->GetControlPointsCount()];
+	vert_pos_skinned * pTheMeshVerts = new vert_pos_skinned[pMesh->GetControlPointsCount()]{};
 	int IndiceCount = pMesh->GetPolygonVertexCount();
+	IndicesCount = IndiceCount;
 	int * pTheMeshIndices = new int[IndiceCount];
 	pTheMeshIndices = pMesh->GetPolygonVertices();
 	VertIndices = pTheMeshIndices;
@@ -575,31 +576,36 @@ __declspec(dllexport) void function(char * fileName, char * outFileNameMesh, cha
 	
 	FbxSkin * pSkin = (FbxSkin*)pMesh->GetDeformer(0);
 
-	for (size_t ClusterIndex = 0; ClusterIndex < pSkin->GetClusterCount(); ClusterIndex++)
+	for (int ClusterIndex = 0; ClusterIndex < pSkin->GetClusterCount(); ClusterIndex++)
 	{
-		FbxCluster *pCluster = pSkin->GetCluster((int)ClusterIndex);
-		FbxNode * pLinkedNode = nullptr;
-		pLinkedNode = pCluster->GetLink();
+		FbxCluster *pCluster = pSkin->GetCluster(ClusterIndex);
+		FbxNode * pLinkedNode = pCluster->GetLink();
 		FbxNode * pIndexNode = nullptr;
 		count = 0;
 		do
 		{
 			pIndexNode = arrBindPose[count++].pNode;
-		} while (pNode != pIndexNode);
+		} while (pLinkedNode != pIndexNode);
 		count--;
 
+		for (int j = 0; j < arrBindPose.size(); j++)
+		{
+			pLinkedNode = pCluster->GetLink();
+			pIndexNode = arrBindPose[j].pNode;
+			if ( pLinkedNode == pIndexNode)
+			{
+				count = j;
+				break;
+
+			}
+		}
 
 		double * pWeights = pCluster->GetControlPointWeights();
 		int * pControllPointIndices = pCluster->GetControlPointIndices();
 		for (size_t affectedVertIndex = 0; affectedVertIndex < pCluster->GetControlPointIndicesCount(); affectedVertIndex++)
 		{
-			int index = 0;
-			while (pTheMeshVerts[pControllPointIndices[affectedVertIndex]].weights[index] != 0.0f)
-			{
-				index += 1;
-			}
-			pTheMeshVerts[pControllPointIndices[affectedVertIndex]].joints[index] = count;
-			pTheMeshVerts[pControllPointIndices[affectedVertIndex]].weights[index] = (float)pWeights[affectedVertIndex];
+			pTheMeshVerts[pControllPointIndices[affectedVertIndex]].joints.push_back(count);
+			pTheMeshVerts[pControllPointIndices[affectedVertIndex]].weights.push_back((float)pWeights[affectedVertIndex]);
 
 		}
 
