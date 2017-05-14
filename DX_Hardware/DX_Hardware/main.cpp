@@ -125,7 +125,8 @@ private:
 
 	//model mesh
 	ID3D11ShaderResourceView * pModelTexture = nullptr;
-	vector<vert_pos_skinned> FileMesh;
+	vert_pos_skinned * pTheVerts = nullptr;
+	unsigned int * pVertIndices = nullptr;
 	ID3D11Buffer * modelvertbuffer = NULL;
 	ID3D11Buffer * modelindexbuffer = NULL;
 	unsigned int modelindexCount = 0;
@@ -133,9 +134,6 @@ private:
 
 	//model animation data
 	anim_clip * IdleAnimationData = nullptr;
-	unsigned int triCount = 0;
-	vector<unsigned int> triIndices;
-	vector<BlendingVertex> verts;
 	vector<joint> bind_pose;
 	SIMPLE_VERTEX * realTimeModel = nullptr;
 	unsigned int keyFrameCount = 0;
@@ -278,12 +276,8 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	// 0.0 1.0 0.0 0.0
 	// 0.0 0.0 1.0 0.0
 	// x   y   z   w
-	vert_pos_skinned * pTheVerts = nullptr;
-	int VertCount = 0;
-	int * pVertIndices = nullptr;
-	int IndicesCount = 0;
-	function(file, mesh, bone, animation, IdleAnimationData, pTheVerts, VertCount, pVertIndices, IndicesCount);
-	functionality(mesh, bone, animation, triCount, triIndices, verts, bind_pose);
+	function(file, mesh, bone, animation, IdleAnimationData, pTheVerts, modelVertCount, pVertIndices, modelindexCount);
+	functionality(mesh, bone, animation, bind_pose);
 
 	keyFrameCount = (int)IdleAnimationData->Frames.size();
 	boneCount = (int)IdleAnimationData->Frames[0].Joints.size();
@@ -295,7 +289,6 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	D3D11_BUFFER_DESC bufferdescription;
 	D3D11_SUBRESOURCE_DATA InitData;
 	//teddy
-	modelVertCount = (unsigned int)VertCount;
 	realTimeModel = new SIMPLE_VERTEX[modelVertCount];
 	XMFLOAT4 VertColor{ 1.0f, 1.0f, 1.0f, 0.0f };
 	for (size_t i = 0; i < modelVertCount; i++)
@@ -313,7 +306,6 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 			else if (j == 3)
 				realTimeModel[i].index.w = (float)pTheVerts[i].joints[3];
 		}
-
 		for (int j = 0; j < pTheVerts[i].weights.size(); j++)
 		{
 			if (j == 0)
@@ -325,35 +317,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 			else if (j == 3)
 				realTimeModel[i].weights.w = pTheVerts[i].weights[3];
 		}
-
-		//realTimeModel[i].index = XMFLOAT4(pTheVerts[i].joints[0], pTheVerts[i].joints[1], pTheVerts[i].joints[2], pTheVerts[i].joints[3]);
-		//realTimeModel[i].weights = XMFLOAT4(pTheVerts[i].weights[0], pTheVerts[i].weights[1], pTheVerts[i].weights[2], pTheVerts[i].weights[3]);
 	}
-
-
-	//modelVertCount = (unsigned int)verts.size();
-	//realTimeModel = new SIMPLE_VERTEX[modelVertCount];
-	//float modelColor[4]{ 1.0f, 1.0f, 1.0f, 0.0f };
-	//for (size_t i = 0; i < modelVertCount; i++)
-	//{
-	//	realTimeModel[i].xyzw.x = verts[i].mPosition.x;
-	//	realTimeModel[i].xyzw.y = verts[i].mPosition.y;
-	//	realTimeModel[i].xyzw.z = verts[i].mPosition.z;
-	//	realTimeModel[i].xyzw.w = 1.0f;
-	//	realTimeModel[i].color.x = modelColor[0];
-	//	realTimeModel[i].color.y = modelColor[1];
-	//	realTimeModel[i].color.z = modelColor[2];
-	//	realTimeModel[i].color.w = modelColor[3];
-	//	realTimeModel[i].index.x = (float)verts[i].mVertexBlendingInfos[0].mBlendingIndex;
-	//	realTimeModel[i].index.y = (float)verts[i].mVertexBlendingInfos[1].mBlendingIndex;
-	//	realTimeModel[i].index.z = (float)verts[i].mVertexBlendingInfos[2].mBlendingIndex;
-	//	realTimeModel[i].index.w = (float)verts[i].mVertexBlendingInfos[3].mBlendingIndex;
-	//	realTimeModel[i].weights.x = (float)verts[i].mVertexBlendingInfos[0].mBlendWeight;
-	//	realTimeModel[i].weights.y = (float)verts[i].mVertexBlendingInfos[1].mBlendWeight;
-	//	realTimeModel[i].weights.z = (float)verts[i].mVertexBlendingInfos[2].mBlendWeight;
-	//	realTimeModel[i].weights.w = (float)verts[i].mVertexBlendingInfos[3].mBlendWeight;
-	//}
-
 
 
 	ZeroMemory(&bufferdescription, sizeof(D3D11_BUFFER_DESC));
@@ -367,19 +331,6 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	InitData.pSysMem = realTimeModel;
 	device->CreateBuffer(&bufferdescription, &InitData, &modelvertbuffer);
 
-	modelindexCount = (unsigned int)IndicesCount;
-	unsigned int * modelIndex;
-	modelIndex = new unsigned int[modelindexCount];
-	for (size_t i = 0; i < modelindexCount; i++)
-		modelIndex[i] = (unsigned int)pVertIndices[i];
-
-
-	/*modelindexCount = (unsigned int)triIndices.size();
-	unsigned int * modelIndex;
-	modelIndex = new unsigned int[modelindexCount];
-	for (size_t i = 0; i < modelindexCount; i++)
-		modelIndex[i] = triIndices[i];*/
-
 	ZeroMemory(&bufferdescription, sizeof(D3D11_BUFFER_DESC));
 	bufferdescription.Usage = D3D11_USAGE_IMMUTABLE;
 	bufferdescription.ByteWidth = (UINT)(sizeof(unsigned int) * modelindexCount);
@@ -388,7 +339,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	bufferdescription.MiscFlags = NULL;
 	bufferdescription.StructureByteStride = sizeof(unsigned int);
 	ZeroMemory(&InitData, sizeof(D3D11_SUBRESOURCE_DATA));
-	InitData.pSysMem = modelIndex;
+	InitData.pSysMem = pVertIndices;
 	device->CreateBuffer(&bufferdescription, &InitData, &modelindexbuffer);
 
 	//ground plane
