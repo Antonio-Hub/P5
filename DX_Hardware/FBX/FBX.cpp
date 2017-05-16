@@ -27,20 +27,10 @@ void DepthFirstSearch(FbxNode * pNode, vector<my_fbx_joint> & Container)
 			Joint->Name[i] = NULL;
 			break;
 		}
-
-	//Joint->Parent_Index = (parentIndex + number);
 	Container.push_back(*Joint);
 	int childCount = pNode->GetChildCount();
 	for (int i = 0; i < childCount; i++)
-	{
-		//	parentIndex += 1;
-		DepthFirstSearch(pNode->GetChild((int)i), Container/*, parentIndex, number*/);
-		//if (!number)
-			//number += 2;
-		//else
-			//number++;
-	}
-	//	parentIndex -= 1;
+		DepthFirstSearch(pNode->GetChild((int)i), Container);
 }
 __declspec(dllexport) void function(char * fileName, char * outFileNameMesh, char * outFileNameBone, char * outFileNameAnimations, anim_clip* & animation, vert_pos_skinned* & FileMesh, unsigned int & VertCount, unsigned int* & VertIndices, unsigned int & IndicesCount)
 {
@@ -137,9 +127,8 @@ __declspec(dllexport) void function(char * fileName, char * outFileNameMesh, cha
 		pMesh = pNode->GetMesh();
 	} while (!pMesh);
 	vert_pos_skinned * pTheMeshVerts = new vert_pos_skinned[pMesh->GetControlPointsCount()]{};
-	unsigned int IndiceCount = pMesh->GetPolygonVertexCount();
-	IndicesCount = IndiceCount;
-	VertIndices = new unsigned int[IndiceCount]{};
+	IndicesCount = (unsigned int)pMesh->GetPolygonVertexCount();
+	VertIndices = new unsigned int[IndicesCount]{};
 	VertIndices = (unsigned int *)pMesh->GetPolygonVertices();
 	VertCount = (unsigned int)pMesh->GetControlPointsCount();
 	for (int i = 0, j = 0; i < pMesh->GetControlPointsCount(); i++)
@@ -150,6 +139,20 @@ __declspec(dllexport) void function(char * fileName, char * outFileNameMesh, cha
 		pTheMeshVerts[j].pos.z = (float)v.mData[2];
 		pTheMeshVerts[j++].pos.w = (float)v.mData[3];
 	}
+	fbxsdk::FbxGeometryElementNormal * pNormalElement = pMesh->GetElementNormal();
+	FbxVector4 normal{};
+	for (int i = 0; i < (int)IndicesCount; i++)
+	{
+		
+		normal = pNormalElement->GetDirectArray().GetAt((int)VertIndices[i]);
+		pTheMeshVerts[(int)VertIndices[i]].norm.x = (float)normal[0];
+		pTheMeshVerts[(int)VertIndices[i]].norm.y = (float)normal[1];
+		pTheMeshVerts[(int)VertIndices[i]].norm.z = (float)normal[2];
+		pTheMeshVerts[(int)VertIndices[i]].norm.w = (float)normal[3];
+
+	}
+
+
 	FbxSkin * pSkin = (FbxSkin*)pMesh->GetDeformer(0);
 	for (int ClusterIndex = 0; ClusterIndex < pSkin->GetClusterCount(); ClusterIndex++)
 	{
