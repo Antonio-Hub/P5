@@ -3,13 +3,11 @@
 
 #include "stdafx.h"
 #include "fbxsdk.h"
-#include <algorithm>
-#include <unordered_map>
 #include <vector>
 #include <DirectXMath.h>
 using namespace DirectX;
 using namespace std;
-
+using namespace fbxsdk;
 #include "Containers.h"
 #include "FBX.h"
 
@@ -68,22 +66,32 @@ __declspec(dllexport) void function(char * fileName, char * outFileNameMesh, cha
 	{
 		joint * pJoint = new joint;
 		pJoint->Parent_Index = arrBindPose[i].Parent_Index;
+		//x-rot
 		pJoint->global_xform._11 = (float)arrBindPose[i].pNode->EvaluateGlobalTransform().mData[0][0];
 		pJoint->global_xform._12 = (float)arrBindPose[i].pNode->EvaluateGlobalTransform().mData[0][1];
 		pJoint->global_xform._13 = (float)arrBindPose[i].pNode->EvaluateGlobalTransform().mData[0][2];
-		pJoint->global_xform._14 = (float)arrBindPose[i].pNode->EvaluateGlobalTransform().mData[0][3];
+		
+		//y-rot
 		pJoint->global_xform._21 = (float)arrBindPose[i].pNode->EvaluateGlobalTransform().mData[1][0];
 		pJoint->global_xform._22 = (float)arrBindPose[i].pNode->EvaluateGlobalTransform().mData[1][1];
 		pJoint->global_xform._23 = (float)arrBindPose[i].pNode->EvaluateGlobalTransform().mData[1][2];
-		pJoint->global_xform._24 = (float)arrBindPose[i].pNode->EvaluateGlobalTransform().mData[1][3];
+
+		//z-rot
 		pJoint->global_xform._31 = (float)arrBindPose[i].pNode->EvaluateGlobalTransform().mData[2][0];
 		pJoint->global_xform._32 = (float)arrBindPose[i].pNode->EvaluateGlobalTransform().mData[2][1];
 		pJoint->global_xform._33 = (float)arrBindPose[i].pNode->EvaluateGlobalTransform().mData[2][2];
+
+		//scale
+		pJoint->global_xform._14 = (float)arrBindPose[i].pNode->EvaluateGlobalTransform().mData[0][3];
+		pJoint->global_xform._24 = (float)arrBindPose[i].pNode->EvaluateGlobalTransform().mData[1][3];
 		pJoint->global_xform._34 = (float)arrBindPose[i].pNode->EvaluateGlobalTransform().mData[2][3];
+		
+		//pos
 		pJoint->global_xform._41 = (float)arrBindPose[i].pNode->EvaluateGlobalTransform().mData[3][0];
 		pJoint->global_xform._42 = (float)arrBindPose[i].pNode->EvaluateGlobalTransform().mData[3][1];
 		pJoint->global_xform._43 = (float)arrBindPose[i].pNode->EvaluateGlobalTransform().mData[3][2];
 		pJoint->global_xform._44 = (float)arrBindPose[i].pNode->EvaluateGlobalTransform().mData[3][3];
+
 		arrTransforms.push_back(*pJoint);
 	}
 	FbxAnimStack * pAnimStack = pScene->GetCurrentAnimationStack();
@@ -99,18 +107,27 @@ __declspec(dllexport) void function(char * fileName, char * outFileNameMesh, cha
 		for (size_t JointIndex = 0; JointIndex < arrBindPose.size(); JointIndex++)
 		{
 			XMFLOAT4X4 * pJoint = new XMFLOAT4X4;
+			//x-rot
 			pJoint->_11 = (float)arrBindPose[JointIndex].pNode->EvaluateGlobalTransform(Time).mData[0][0];
 			pJoint->_12 = (float)arrBindPose[JointIndex].pNode->EvaluateGlobalTransform(Time).mData[0][1];
 			pJoint->_13 = (float)arrBindPose[JointIndex].pNode->EvaluateGlobalTransform(Time).mData[0][2];
-			pJoint->_14 = (float)arrBindPose[JointIndex].pNode->EvaluateGlobalTransform(Time).mData[0][3];
+
+			//y-rot
 			pJoint->_21 = (float)arrBindPose[JointIndex].pNode->EvaluateGlobalTransform(Time).mData[1][0];
 			pJoint->_22 = (float)arrBindPose[JointIndex].pNode->EvaluateGlobalTransform(Time).mData[1][1];
 			pJoint->_23 = (float)arrBindPose[JointIndex].pNode->EvaluateGlobalTransform(Time).mData[1][2];
-			pJoint->_24 = (float)arrBindPose[JointIndex].pNode->EvaluateGlobalTransform(Time).mData[1][3];
+
+			//z-rot
 			pJoint->_31 = (float)arrBindPose[JointIndex].pNode->EvaluateGlobalTransform(Time).mData[2][0];
 			pJoint->_32 = (float)arrBindPose[JointIndex].pNode->EvaluateGlobalTransform(Time).mData[2][1];
 			pJoint->_33 = (float)arrBindPose[JointIndex].pNode->EvaluateGlobalTransform(Time).mData[2][2];
+
+			//scale
+			pJoint->_14 = (float)arrBindPose[JointIndex].pNode->EvaluateGlobalTransform(Time).mData[0][3];
+			pJoint->_24 = (float)arrBindPose[JointIndex].pNode->EvaluateGlobalTransform(Time).mData[1][3];
 			pJoint->_34 = (float)arrBindPose[JointIndex].pNode->EvaluateGlobalTransform(Time).mData[2][3];
+			
+			//pos
 			pJoint->_41 = (float)arrBindPose[JointIndex].pNode->EvaluateGlobalTransform(Time).mData[3][0];
 			pJoint->_42 = (float)arrBindPose[JointIndex].pNode->EvaluateGlobalTransform(Time).mData[3][1];
 			pJoint->_43 = (float)arrBindPose[JointIndex].pNode->EvaluateGlobalTransform(Time).mData[3][2];
@@ -128,7 +145,7 @@ __declspec(dllexport) void function(char * fileName, char * outFileNameMesh, cha
 	} while (!pMesh);
 	vert_pos_skinned * pTheMeshVerts = new vert_pos_skinned[pMesh->GetControlPointsCount()]{};
 	IndicesCount = (unsigned int)pMesh->GetPolygonVertexCount();
-	VertIndices = new unsigned int[IndicesCount]{};
+	//VertIndices = new unsigned int[IndicesCount]{};
 	VertIndices = (unsigned int *)pMesh->GetPolygonVertices();
 	VertCount = (unsigned int)pMesh->GetControlPointsCount();
 	for (int i = 0, j = 0; i < pMesh->GetControlPointsCount(); i++)
@@ -139,22 +156,41 @@ __declspec(dllexport) void function(char * fileName, char * outFileNameMesh, cha
 		pTheMeshVerts[j].pos.z = (float)v.mData[2];
 		pTheMeshVerts[j++].pos.w = (float)v.mData[3];
 	}
-	fbxsdk::FbxGeometryElementNormal * pNormalElement = pMesh->GetElementNormal();
-	FbxVector4 normal{};
-	for (int i = 0; i < (int)IndicesCount; i++)
-	{
-		
-		normal = pNormalElement->GetDirectArray().GetAt((int)VertIndices[i]);
-		pTheMeshVerts[(int)VertIndices[i]].norm.x = (float)normal[0];
-		pTheMeshVerts[(int)VertIndices[i]].norm.y = (float)normal[1];
-		pTheMeshVerts[(int)VertIndices[i]].norm.z = (float)normal[2];
-		pTheMeshVerts[(int)VertIndices[i]].norm.w = (float)normal[3];
+	//fbxsdk::FbxGeometryElementNormal * pNormalElement = pMesh->GetElementNormal();
+	//FbxVector4 normal{};
+	//for (int i = 0; i < (int)IndicesCount; i++)
+	//{
+	//	normal = pNormalElement->GetDirectArray().GetAt((int)VertIndices[i]);
+	//	pTheMeshVerts[(int)VertIndices[i]].norm.x = (float)normal[0];
+	//	pTheMeshVerts[(int)VertIndices[i]].norm.y = (float)normal[1];
+	//	pTheMeshVerts[(int)VertIndices[i]].norm.z = (float)normal[2];
+	//	pTheMeshVerts[(int)VertIndices[i]].norm.w = (float)normal[3];
 
-	}
+	//}
 
+	//for (int i = 0; i < pMesh->GetPolygonCount(); i++)
+	//{
+	//	FbxLayerElement::EType TypeIdentifier = FbxLayerElement::eTextureDiffuse;
+
+	//	FbxLayerElementArrayTemplate<FbxVector2> * uvs = nullptr;
+	//	FbxLayerElementArrayTemplate<int> * uvindices = nullptr;
+
+	//	pMesh->GetTextureUV(&uvs, TypeIdentifier);
+	//	pMesh->GetTextureIndices(&uvindices, TypeIdentifier);
+
+	//	for (int j = 0; j < pMesh->GetPolygonSize(i); j++)
+	//	{
+	//		int u = -1, v = -1, TextureUVIndex = -1;
+	//		TextureUVIndex = (int)pMesh->GetTextureUVIndex(i, j);
+	//		//int sfda = uvindices->GetAt(TextureUVIndex);
+	//		pTheMeshVerts[TextureUVIndex].uv.x = (float)uvs->GetAt(TextureUVIndex).mData[0];
+	//		pTheMeshVerts[TextureUVIndex].uv.y = (float)uvs->GetAt(TextureUVIndex).mData[1];
+	//	}
+	//}
 
 	FbxSkin * pSkin = (FbxSkin*)pMesh->GetDeformer(0);
-	for (int ClusterIndex = 0; ClusterIndex < pSkin->GetClusterCount(); ClusterIndex++)
+	int clusterCount = pSkin->GetClusterCount();
+	for (int ClusterIndex = 0; ClusterIndex < clusterCount; ClusterIndex++)
 	{
 		FbxCluster *pCluster = pSkin->GetCluster(ClusterIndex);
 		FbxNode * pLinkedNode = pCluster->GetLink();
@@ -177,7 +213,8 @@ __declspec(dllexport) void function(char * fileName, char * outFileNameMesh, cha
 		}
 		double * pWeights = pCluster->GetControlPointWeights();
 		int * pControllPointIndices = pCluster->GetControlPointIndices();
-		for (size_t affectedVertIndex = 0; affectedVertIndex < pCluster->GetControlPointIndicesCount(); affectedVertIndex++)
+		size_t ControlPointIndicesCount = pCluster->GetControlPointIndicesCount();
+		for (size_t affectedVertIndex = 0; affectedVertIndex < ControlPointIndicesCount; affectedVertIndex++)
 		{
 			pTheMeshVerts[pControllPointIndices[affectedVertIndex]].joints.push_back(count);
 			pTheMeshVerts[pControllPointIndices[affectedVertIndex]].weights.push_back((float)pWeights[affectedVertIndex]);

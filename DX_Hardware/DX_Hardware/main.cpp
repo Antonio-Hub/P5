@@ -73,6 +73,7 @@ Save::Save()
 }
 void Save::LoadFromFile(XMFLOAT4X4 &data)
 {
+	f = nullptr;
 	error = fopen_s(&f, file, "rb");
 	if (error)
 		return;
@@ -97,8 +98,8 @@ Save save;
 class DEMO_APP
 {
 public:
-	struct SIMPLE_VERTEX { XMFLOAT4 xyzw; XMFLOAT4 color;  XMFLOAT4 index; XMFLOAT4 weights; };
-	struct VRAM { XMFLOAT4X4 camView; XMFLOAT4X4 camProj; XMFLOAT4X4 modelPos; };
+	struct SIMPLE_VERTEX { XMFLOAT4 xyzw; XMFLOAT4 normal; XMFLOAT4 color; XMFLOAT2 uv; XMFLOAT4 index; XMFLOAT4 weights; };
+	struct VRAM { XMFLOAT4X4 camView; XMFLOAT4X4 camProj; XMFLOAT4X4 modelPos; XMFLOAT4 spot_light_pos; XMFLOAT4 spot_light_dir; };
 	struct ANIMATION_VRAM { XMFLOAT4X4 InverseBindPose[128]; XMFLOAT4X4 RealTimePose[128]; };
 	XTime Time;
 
@@ -267,6 +268,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 
 #pragma region fbx loading
 	char file[]{ "Teddy_Idle.fbx" };
+	//char file[]{ "Box_Idle.fbx" };
 	char mesh[]{ "mesh.bin" };
 	char bone[]{ "bone.bin" };
 	char animation[]{ "animation.bin" };
@@ -294,6 +296,8 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	for (size_t i = 0; i < modelVertCount; i++)
 	{
 		realTimeModel[i].xyzw = pTheVerts[i].pos;
+		realTimeModel[i].normal = pTheVerts[i].norm;
+		realTimeModel[i].uv = pTheVerts[i].uv;
 		realTimeModel[i].color = VertColor;
 		for (int j = 0; j < pTheVerts[i].joints.size(); j++)
 		{
@@ -349,6 +353,17 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	groundPlane[1].xyzw = XMFLOAT4(10.0f, 0.0f, -10.0f, 0);
 	groundPlane[2].xyzw = XMFLOAT4(-10.0f, 0.0f, -10.0f, 0);
 	groundPlane[3].xyzw = XMFLOAT4(-10.0f, 0.0f, 10.0f, 0);
+
+	groundPlane[0].normal = XMFLOAT4(0.0f, 1.0f, 0.0f, 0);
+	groundPlane[1].normal = XMFLOAT4(0.0f, 1.0f, 0.0f, 0);
+	groundPlane[2].normal = XMFLOAT4(0.0f, 1.0f, 0.0f, 0);
+	groundPlane[3].normal = XMFLOAT4(0.0f, 1.0f, 0.0f, 0);
+
+	groundPlane[0].uv = XMFLOAT2(0.0f, 1.0f);
+	groundPlane[1].uv = XMFLOAT2(1.0f, 1.0f);
+	groundPlane[2].uv = XMFLOAT2(1.0f, 0.0f);
+	groundPlane[3].uv = XMFLOAT2(0.0f, 0.0f);
+	//float groundColor[4]{ 1.0f, 1.0f, 1.0f, 0.0f };
 	float groundColor[4]{ 0.0f, 1.0f, 0.0f, 0.0f };
 	for (size_t i = 0; i < 4; i++)
 	{
@@ -383,7 +398,8 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 #pragma endregion
 
 #pragma region textures
-	HR = CreateDDSTextureFromFile(device, L"Teddy_D.dds", nullptr, &pModelTexture);
+	//HR = CreateDDSTextureFromFile(device, L"Teddy_D.dds", nullptr, &pModelTexture);
+	HR = CreateDDSTextureFromFile(device, L"TestCube.dds", nullptr, &pModelTexture);
 #pragma endregion
 
 #pragma region debug render buffers
@@ -435,14 +451,18 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	//const buff
 	//camera data
 	//static const XMVECTORF32 eye = { 0.0f, 0.0f, 5.5f, 0.0f };
-	//static const XMVECTORF32 eye = { 0.0f, 35.0f, 30.0f, 0.0f };
+	static const XMVECTORF32 eye = { 0.0f, 35.0f, 30.0f, 0.0f };
 	//static const XMVECTORF32 eye = { 0.0f, 350.0f, 300.0f, 0.0f };
-	static const XMVECTORF32 eye = { 0.0f, 350.0f, 300.0f, 0.0f };
+	//static const XMVECTORF32 eye = { 0.0f, 350.0f, 300.0f, 0.0f };
 	static const XMVECTORF32 at = { 0.0f, 0.0f, 0.0f, 0.0f };
 	static const XMVECTORF32 up = { 0.0f, 1.0f, 0.0f, 0.0f };
-	XMStoreFloat4x4(&camera, XMMatrixInverse(NULL, XMMatrixLookAtRH(eye, at, up)));
-	XMStoreFloat4x4(&send_to_ram.camView, XMMatrixTranspose(XMMatrixLookAtRH(eye, at, up)));
+	XMMATRIX m = XMMatrixLookAtRH(eye, at, up);
+	XMStoreFloat4x4(&camera, XMMatrixInverse(NULL, m));
 	save.LoadFromFile(camera);
+	XMStoreFloat4x4(&send_to_ram.camView, XMMatrixTranspose(m));
+	//use camera matrix in rather than this every frame
+	//XMStoreFloat4(&send_to_ram.spot_light_pos, XMLoadFloat4(&XMFLOAT4(send_to_ram.camView.m[3])));
+	//XMStoreFloat4(&send_to_ram.spot_light_dir, XMLoadFloat4(&XMFLOAT4(send_to_ram.camView.m[2])));
 	float aspectRatio = BACKBUFFER_WIDTH / BACKBUFFER_HEIGHT;
 	float fovAngleY = 70.0f * XM_PI / 180.0f;
 	if (aspectRatio < 1.0f)
@@ -463,7 +483,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	InitData.pSysMem = &send_to_ram;
 	device->CreateBuffer(&bufferdescription, &InitData, &constBuffer);
 
-	XMMATRIX m = XMMatrixIdentity();
+	m = XMMatrixIdentity();
 	for (size_t i = 0; i < bind_pose.size(); i++)
 	{
 		m = XMLoadFloat4x4(&bind_pose[i].global_xform);
@@ -490,7 +510,9 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	D3D11_INPUT_ELEMENT_DESC vertlayout[] =
 	{
 		"POSITION", 0,DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0,
+		"NORMAL", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0,
 		"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0,
+		"UV", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0,
 		"INDEX", 0,DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0,
 		"WEIGHT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0,
 	};
@@ -535,6 +557,14 @@ bool DEMO_APP::Run()
 	imput.mouse_move = false;
 	XMStoreFloat4x4(&camera, newcamera);
 	XMStoreFloat4x4(&send_to_ram.camView, XMMatrixTranspose(XMMatrixInverse(0, newcamera)));
+
+	send_to_ram.spot_light_pos.x = 0.0f;
+	send_to_ram.spot_light_pos.y = 1.0f;
+	send_to_ram.spot_light_pos.z = 0.0f;
+
+	send_to_ram.spot_light_dir.x = 0.0f;
+	send_to_ram.spot_light_dir.y = -1.0f;
+	send_to_ram.spot_light_dir.z = 0.0f;
 
 	if (!imput.buttons[VK_LEFT])
 		imput.bLeft = false;
@@ -581,7 +611,8 @@ bool DEMO_APP::Run()
 #pragma endregion
 
 #pragma region settings for all draw calls
-	float color[4]{ 0.87f, 0.87f, 1.0f, 0.0f };
+	//float color[4]{ 0.87f, 0.87f, 1.0f, 0.0f };
+	float color[4]{ 0.0f, 0.0f, 0.0f, 0.0f };
 
 	context->OMSetRenderTargets(1, &rtv, depthStencilView);
 	context->ClearRenderTargetView(rtv, color);
@@ -593,6 +624,7 @@ bool DEMO_APP::Run()
 	context->PSSetShader(pixelshader, NULL, NULL);
 	context->IASetInputLayout(layout);
 
+	context->PSSetShaderResources(0, 1, &pModelTexture);
 	ZeroMemory(&mapResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
 	context->Map(constBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapResource);
 	memcpy(mapResource.pData, &send_to_ram, sizeof(VRAM));
@@ -618,41 +650,139 @@ bool DEMO_APP::Run()
 
 	if (!animationPaused)
 	{
+		XMFLOAT4 new_x_rot{}, new_y_rot{}, new_z_rot{}, new_pos{};
+		XMVECTOR from_x_rot{}, from_y_rot{}, from_z_rot{}, from_pos{}, to_x_rot{}, to_y_rot{}, to_z_rot{}, to_pos{};
+		int index = 0;
 
-		XMMATRIX pos = XMMatrixIdentity();
-		XMFLOAT4 t{};
 		for (size_t i = 0; i < boneCount; i++)
 		{
-			XMVECTOR from = XMVectorSet(
+			from_x_rot = XMVectorSet(
+				IdleAnimationData->Frames[keyframeAnimIndex].Joints[i]._11,
+				IdleAnimationData->Frames[keyframeAnimIndex].Joints[i]._12,
+				IdleAnimationData->Frames[keyframeAnimIndex].Joints[i]._13,
+				IdleAnimationData->Frames[keyframeAnimIndex].Joints[i]._14);
+			from_y_rot = XMVectorSet(
+				IdleAnimationData->Frames[keyframeAnimIndex].Joints[i]._21,
+				IdleAnimationData->Frames[keyframeAnimIndex].Joints[i]._22,
+				IdleAnimationData->Frames[keyframeAnimIndex].Joints[i]._23,
+				IdleAnimationData->Frames[keyframeAnimIndex].Joints[i]._24);
+			from_z_rot = XMVectorSet(
+				IdleAnimationData->Frames[keyframeAnimIndex].Joints[i]._31,
+				IdleAnimationData->Frames[keyframeAnimIndex].Joints[i]._32,
+				IdleAnimationData->Frames[keyframeAnimIndex].Joints[i]._33,
+				IdleAnimationData->Frames[keyframeAnimIndex].Joints[i]._34);
+			from_pos = XMVectorSet(
 				IdleAnimationData->Frames[keyframeAnimIndex].Joints[i]._41,
 				IdleAnimationData->Frames[keyframeAnimIndex].Joints[i]._42,
 				IdleAnimationData->Frames[keyframeAnimIndex].Joints[i]._43,
 				IdleAnimationData->Frames[keyframeAnimIndex].Joints[i]._44);
-			XMVECTOR to;
+
 			if ((unsigned)keyframeAnimIndex + 1 < keyFrameCount)
-				to = XMVectorSet(
+			{
+				to_x_rot = XMVectorSet(
+					IdleAnimationData->Frames[keyframeAnimIndex + 1].Joints[i]._11,
+					IdleAnimationData->Frames[keyframeAnimIndex + 1].Joints[i]._12,
+					IdleAnimationData->Frames[keyframeAnimIndex + 1].Joints[i]._13,
+					IdleAnimationData->Frames[keyframeAnimIndex + 1].Joints[i]._14);
+				to_y_rot = XMVectorSet(
+					IdleAnimationData->Frames[keyframeAnimIndex + 1].Joints[i]._21,
+					IdleAnimationData->Frames[keyframeAnimIndex + 1].Joints[i]._22,
+					IdleAnimationData->Frames[keyframeAnimIndex + 1].Joints[i]._23,
+					IdleAnimationData->Frames[keyframeAnimIndex + 1].Joints[i]._24);
+				to_z_rot = XMVectorSet(
+					IdleAnimationData->Frames[keyframeAnimIndex + 1].Joints[i]._31,
+					IdleAnimationData->Frames[keyframeAnimIndex + 1].Joints[i]._32,
+					IdleAnimationData->Frames[keyframeAnimIndex + 1].Joints[i]._33,
+					IdleAnimationData->Frames[keyframeAnimIndex + 1].Joints[i]._34);
+				to_pos = XMVectorSet(
 					IdleAnimationData->Frames[keyframeAnimIndex + 1].Joints[i]._41,
 					IdleAnimationData->Frames[keyframeAnimIndex + 1].Joints[i]._42,
 					IdleAnimationData->Frames[keyframeAnimIndex + 1].Joints[i]._43,
 					IdleAnimationData->Frames[keyframeAnimIndex + 1].Joints[i]._44);
+			}
 			else
-				to = XMVectorSet(
+			{
+				to_x_rot = XMVectorSet(
 					IdleAnimationData->Frames[0].Joints[i]._41,
 					IdleAnimationData->Frames[0].Joints[i]._42,
 					IdleAnimationData->Frames[0].Joints[i]._43,
 					IdleAnimationData->Frames[0].Joints[i]._44);
+				to_y_rot = XMVectorSet(
+					IdleAnimationData->Frames[0].Joints[i]._41,
+					IdleAnimationData->Frames[0].Joints[i]._42,
+					IdleAnimationData->Frames[0].Joints[i]._43,
+					IdleAnimationData->Frames[0].Joints[i]._44);
+				to_z_rot = XMVectorSet(
+					IdleAnimationData->Frames[0].Joints[i]._41,
+					IdleAnimationData->Frames[0].Joints[i]._42,
+					IdleAnimationData->Frames[0].Joints[i]._43,
+					IdleAnimationData->Frames[0].Joints[i]._44);
+				to_pos = XMVectorSet(
+					IdleAnimationData->Frames[0].Joints[i]._41,
+					IdleAnimationData->Frames[0].Joints[i]._42,
+					IdleAnimationData->Frames[0].Joints[i]._43,
+					IdleAnimationData->Frames[0].Joints[i]._44);
+			}
 
+			XMStoreFloat4(&new_x_rot, XMQuaternionSlerp(from_x_rot, to_x_rot, (float)ratio));
+			XMStoreFloat4(&new_y_rot, XMQuaternionSlerp(from_y_rot, to_y_rot, (float)ratio));
+			XMStoreFloat4(&new_z_rot, XMQuaternionSlerp(from_z_rot, to_z_rot, (float)ratio));
+			XMStoreFloat4(&new_pos, XMQuaternionSlerp(from_pos, to_pos, (float)ratio));
 
-			XMVECTOR eye = XMQuaternionSlerp(from, to, (float)ratio);
-			XMStoreFloat4(&t, eye);
-			DebugPointData[i].xyzw = t;
+#pragma region debug skeleton 
+			DebugPointData[i].xyzw = new_pos;
+			if (bind_pose[i].Parent_Index != -1)
+			{
+				DebugLineData[index].xyzw.x = send_to_ram2.RealTimePose[bind_pose[i].Parent_Index]._41;
+				DebugLineData[index].xyzw.y = send_to_ram2.RealTimePose[bind_pose[i].Parent_Index]._42;
+				DebugLineData[index].xyzw.z = send_to_ram2.RealTimePose[bind_pose[i].Parent_Index]._43;
+				DebugLineData[index].xyzw.w = send_to_ram2.RealTimePose[bind_pose[i].Parent_Index]._44;
+				DebugLineData[index].color = XMFLOAT4(1.0f, 0.0f, 0.0f, 0.0f);
+				index++;
+				DebugLineData[index].xyzw.x = send_to_ram2.RealTimePose[i]._41;
+				DebugLineData[index].xyzw.y = send_to_ram2.RealTimePose[i]._42;
+				DebugLineData[index].xyzw.z = send_to_ram2.RealTimePose[i]._43;
+				DebugLineData[index].xyzw.w = send_to_ram2.RealTimePose[i]._44;
+				DebugLineData[index].color = XMFLOAT4(0.0f, 0.0f, 1.0f, 0.0f);
+				index++;
+			}
+			else //Render line from origin to root node.
+			{
+				DebugLineData[index].xyzw.x = 0.0f;
+				DebugLineData[index].xyzw.y = 0.0f;
+				DebugLineData[index].xyzw.z = 0.0f;
+				DebugLineData[index].xyzw.w = 0.0f;
+				DebugLineData[index].color = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+				index++;
+				DebugLineData[index].xyzw.x = send_to_ram2.RealTimePose[i]._41;
+				DebugLineData[index].xyzw.y = send_to_ram2.RealTimePose[i]._42;
+				DebugLineData[index].xyzw.z = send_to_ram2.RealTimePose[i]._43;
+				DebugLineData[index].xyzw.w = send_to_ram2.RealTimePose[i]._44;
+				DebugLineData[index].color = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+				index++;
+			}
+#pragma endregion
+
+			/*
 			send_to_ram2.RealTimePose[i]._11 = 1.0f; send_to_ram2.RealTimePose[i]._12 = 0.0f; send_to_ram2.RealTimePose[i]._13 = 0.0f; send_to_ram2.RealTimePose[i]._14 = 0.0f;
 			send_to_ram2.RealTimePose[i]._21 = 0.0f; send_to_ram2.RealTimePose[i]._22 = 1.0f; send_to_ram2.RealTimePose[i]._23 = 0.0f; send_to_ram2.RealTimePose[i]._24 = 0.0f;
 			send_to_ram2.RealTimePose[i]._31 = 0.0f; send_to_ram2.RealTimePose[i]._32 = 0.0f; send_to_ram2.RealTimePose[i]._33 = 1.0f; send_to_ram2.RealTimePose[i]._34 = 0.0f;
-			send_to_ram2.RealTimePose[i]._41 = t.x;	 send_to_ram2.RealTimePose[i]._42 = t.y;  send_to_ram2.RealTimePose[i]._43 = t.z;  send_to_ram2.RealTimePose[i]._44 = t.w;
-			XMVECTOR at = XMLoadFloat4(&XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f));
-			XMVECTOR up = XMLoadFloat4(&XMFLOAT4(0.0f, 1.0f, 0.0f, 0.0f));
-			//	XMStoreFloat4x4(&send_to_ram2.RealTimePose[i], XMMatrixTranspose(XMMatrixLookAtRH(eye, at, up)));
+			send_to_ram2.RealTimePose[i]._41 = new_pos.x;	 send_to_ram2.RealTimePose[i]._42 = new_pos.y;  send_to_ram2.RealTimePose[i]._43 = new_pos.z;  send_to_ram2.RealTimePose[i]._44 = new_pos.w;
+			*/
+			send_to_ram2.RealTimePose[i]._11 = 1.0f; send_to_ram2.RealTimePose[i]._12 = 0.0f; send_to_ram2.RealTimePose[i]._13 = 0.0f; send_to_ram2.RealTimePose[i]._14 = new_pos.x;
+			send_to_ram2.RealTimePose[i]._21 = 0.0f; send_to_ram2.RealTimePose[i]._22 = 1.0f; send_to_ram2.RealTimePose[i]._23 = 0.0f; send_to_ram2.RealTimePose[i]._24 = new_pos.y;
+			send_to_ram2.RealTimePose[i]._31 = 0.0f; send_to_ram2.RealTimePose[i]._32 = 0.0f; send_to_ram2.RealTimePose[i]._33 = 1.0f; send_to_ram2.RealTimePose[i]._34 = new_pos.z;
+			send_to_ram2.RealTimePose[i]._41 = 0.0f;	 send_to_ram2.RealTimePose[i]._42 = 0.0f;  send_to_ram2.RealTimePose[i]._43 = 0.0f;  send_to_ram2.RealTimePose[i]._44 = new_pos.w;
+
+
+			XMMATRIX m1 = XMMatrixIdentity();
+			m1 = XMLoadFloat4x4(&send_to_ram2.RealTimePose[i]);
+			XMMATRIX m2 = XMMatrixIdentity();
+			m2 = XMLoadFloat4x4(&send_to_ram2.InverseBindPose[i]);
+
+			XMMATRIX m3 = m1 * m2;
+
+			XMStoreFloat4x4(&send_to_ram2.RealTimePose[i], m3);
 
 		}
 	}
@@ -661,11 +791,12 @@ bool DEMO_APP::Run()
 		XMMATRIX m = XMMatrixIdentity();
 		for (size_t i = 0; i < boneCount; i++)
 		{
+
+
 			m = XMLoadFloat4x4(&IdleAnimationData->Frames[keyframeAnimIndex].Joints[i]);
 			m = XMMatrixTranspose(m);
 			XMStoreFloat4x4(&send_to_ram2.RealTimePose[i], m);
 
-			send_to_ram2.RealTimePose[i] = IdleAnimationData->Frames[keyframeAnimIndex].Joints[i];
 			DebugPointData[i].xyzw.x = send_to_ram2.RealTimePose[i]._41;
 			DebugPointData[i].xyzw.y = send_to_ram2.RealTimePose[i]._42;
 			DebugPointData[i].xyzw.z = send_to_ram2.RealTimePose[i]._43;
@@ -682,6 +813,7 @@ bool DEMO_APP::Run()
 	context->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	context->IASetVertexBuffers(0, 1, &modelvertbuffer, &stride, &offset);
 	context->IASetIndexBuffer(modelindexbuffer, DXGI_FORMAT_R32_UINT, offset);
+	context->PSSetShaderResources(0, 1, &pModelTexture);
 	if (!RenderWireFrame)
 		context->RSSetState(wireFrameRasterizerState);
 	else
@@ -701,40 +833,40 @@ bool DEMO_APP::Run()
 	context->RSSetState(wireFrameRasterizerState);
 	context->Draw(DebugPointCount, 0);
 
-	int index = 0;
-	for (size_t i = 0; i < bind_pose.size(); i++)
-	{
-		if (bind_pose[i].Parent_Index != -1)
-		{
-			DebugLineData[index].xyzw.x = send_to_ram2.RealTimePose[bind_pose[i].Parent_Index]._41;
-			DebugLineData[index].xyzw.y = send_to_ram2.RealTimePose[bind_pose[i].Parent_Index]._42;
-			DebugLineData[index].xyzw.z = send_to_ram2.RealTimePose[bind_pose[i].Parent_Index]._43;
-			DebugLineData[index].xyzw.w = send_to_ram2.RealTimePose[bind_pose[i].Parent_Index]._44;
-			DebugLineData[index].color = XMFLOAT4(1.0f, 0.0f, 0.0f, 0.0f);
-			index++;
-			DebugLineData[index].xyzw.x = send_to_ram2.RealTimePose[i]._41;
-			DebugLineData[index].xyzw.y = send_to_ram2.RealTimePose[i]._42;
-			DebugLineData[index].xyzw.z = send_to_ram2.RealTimePose[i]._43;
-			DebugLineData[index].xyzw.w = send_to_ram2.RealTimePose[i]._44;
-			DebugLineData[index].color = XMFLOAT4(0.0f, 0.0f, 1.0f, 0.0f);
-			index++;
-		}
-		else //Render line from origin to root node.
-		{
-			DebugLineData[index].xyzw.x = 0.0f;
-			DebugLineData[index].xyzw.y = 0.0f;
-			DebugLineData[index].xyzw.z = 0.0f;
-			DebugLineData[index].xyzw.w = 0.0f;
-			DebugLineData[index].color = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
-			index++;
-			DebugLineData[index].xyzw.x = send_to_ram2.RealTimePose[i]._41;
-			DebugLineData[index].xyzw.y = send_to_ram2.RealTimePose[i]._42;
-			DebugLineData[index].xyzw.z = send_to_ram2.RealTimePose[i]._43;
-			DebugLineData[index].xyzw.w = send_to_ram2.RealTimePose[i]._44;
-			DebugLineData[index].color = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
-			index++;
-		}
-	}
+	//int index = 0;
+	//for (size_t i = 0; i < bind_pose.size(); i++)
+	//{
+	//	if (bind_pose[i].Parent_Index != -1)
+	//	{
+	//		DebugLineData[index].xyzw.x = send_to_ram2.RealTimePose[bind_pose[i].Parent_Index]._41;
+	//		DebugLineData[index].xyzw.y = send_to_ram2.RealTimePose[bind_pose[i].Parent_Index]._42;
+	//		DebugLineData[index].xyzw.z = send_to_ram2.RealTimePose[bind_pose[i].Parent_Index]._43;
+	//		DebugLineData[index].xyzw.w = send_to_ram2.RealTimePose[bind_pose[i].Parent_Index]._44;
+	//		DebugLineData[index].color = XMFLOAT4(1.0f, 0.0f, 0.0f, 0.0f);
+	//		index++;
+	//		DebugLineData[index].xyzw.x = send_to_ram2.RealTimePose[i]._41;
+	//		DebugLineData[index].xyzw.y = send_to_ram2.RealTimePose[i]._42;
+	//		DebugLineData[index].xyzw.z = send_to_ram2.RealTimePose[i]._43;
+	//		DebugLineData[index].xyzw.w = send_to_ram2.RealTimePose[i]._44;
+	//		DebugLineData[index].color = XMFLOAT4(0.0f, 0.0f, 1.0f, 0.0f);
+	//		index++;
+	//	}
+	//	else //Render line from origin to root node.
+	//	{
+	//		DebugLineData[index].xyzw.x = 0.0f;
+	//		DebugLineData[index].xyzw.y = 0.0f;
+	//		DebugLineData[index].xyzw.z = 0.0f;
+	//		DebugLineData[index].xyzw.w = 0.0f;
+	//		DebugLineData[index].color = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+	//		index++;
+	//		DebugLineData[index].xyzw.x = send_to_ram2.RealTimePose[i]._41;
+	//		DebugLineData[index].xyzw.y = send_to_ram2.RealTimePose[i]._42;
+	//		DebugLineData[index].xyzw.z = send_to_ram2.RealTimePose[i]._43;
+	//		DebugLineData[index].xyzw.w = send_to_ram2.RealTimePose[i]._44;
+	//		DebugLineData[index].color = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+	//		index++;
+	//	}
+	//}
 	ZeroMemory(&mapResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
 	context->Map(pDebugLineBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapResource);
 	memcpy(mapResource.pData, &DebugLineData, sizeof(SIMPLE_VERTEX) * DebugLineCount);
@@ -804,7 +936,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, LPTSTR, int)
 	DEMO_APP myApp(hInstance, (WNDPROC)WndProc);
 	MSG msg; ZeroMemory(&msg, sizeof(msg));
 
-	tagTRACKMOUSEEVENT mouse_tracker;
+	tagTRACKMOUSEEVENT mouse_tracker; ZeroMemory(&mouse_tracker, sizeof(mouse_tracker));
 	TrackMouseEvent(&mouse_tracker);
 
 	while (msg.message != WM_QUIT && myApp.Run())
