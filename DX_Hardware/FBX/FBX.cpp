@@ -70,7 +70,7 @@ __declspec(dllexport) void function(char * fileName, char * outFileNameMesh, cha
 		pJoint->global_xform._11 = (float)arrBindPose[i].pNode->EvaluateGlobalTransform().mData[0][0];
 		pJoint->global_xform._12 = (float)arrBindPose[i].pNode->EvaluateGlobalTransform().mData[0][1];
 		pJoint->global_xform._13 = (float)arrBindPose[i].pNode->EvaluateGlobalTransform().mData[0][2];
-		
+
 		//y-rot
 		pJoint->global_xform._21 = (float)arrBindPose[i].pNode->EvaluateGlobalTransform().mData[1][0];
 		pJoint->global_xform._22 = (float)arrBindPose[i].pNode->EvaluateGlobalTransform().mData[1][1];
@@ -85,7 +85,7 @@ __declspec(dllexport) void function(char * fileName, char * outFileNameMesh, cha
 		pJoint->global_xform._14 = (float)arrBindPose[i].pNode->EvaluateGlobalTransform().mData[0][3];
 		pJoint->global_xform._24 = (float)arrBindPose[i].pNode->EvaluateGlobalTransform().mData[1][3];
 		pJoint->global_xform._34 = (float)arrBindPose[i].pNode->EvaluateGlobalTransform().mData[2][3];
-		
+
 		//pos
 		pJoint->global_xform._41 = (float)arrBindPose[i].pNode->EvaluateGlobalTransform().mData[3][0];
 		pJoint->global_xform._42 = (float)arrBindPose[i].pNode->EvaluateGlobalTransform().mData[3][1];
@@ -126,7 +126,7 @@ __declspec(dllexport) void function(char * fileName, char * outFileNameMesh, cha
 			pJoint->_14 = (float)arrBindPose[JointIndex].pNode->EvaluateGlobalTransform(Time).mData[0][3];
 			pJoint->_24 = (float)arrBindPose[JointIndex].pNode->EvaluateGlobalTransform(Time).mData[1][3];
 			pJoint->_34 = (float)arrBindPose[JointIndex].pNode->EvaluateGlobalTransform(Time).mData[2][3];
-			
+
 			//pos
 			pJoint->_41 = (float)arrBindPose[JointIndex].pNode->EvaluateGlobalTransform(Time).mData[3][0];
 			pJoint->_42 = (float)arrBindPose[JointIndex].pNode->EvaluateGlobalTransform(Time).mData[3][1];
@@ -148,14 +148,41 @@ __declspec(dllexport) void function(char * fileName, char * outFileNameMesh, cha
 	//VertIndices = new unsigned int[IndicesCount]{};
 	VertIndices = (unsigned int *)pMesh->GetPolygonVertices();
 	VertCount = (unsigned int)pMesh->GetControlPointsCount();
-	for (int i = 0, j = 0; i < pMesh->GetControlPointsCount(); i++)
+
+	FbxGeometryElementNormal * pNormalElement = pMesh->GetElementNormal(0);
+	FbxGeometryElementUV * pUVElement = pMesh->GetElementUV(0);
+	
+	FbxVector4 CurrentNormal;
+	FbxVector2 CurrentUV;
+
+	for (int i = 0; i < pMesh->GetControlPointsCount(); i++)
 	{
 		FbxVector4 v = pMesh->GetControlPointAt(i);
-		pTheMeshVerts[j].pos.x = (float)v.mData[0];
-		pTheMeshVerts[j].pos.y = (float)v.mData[1];
-		pTheMeshVerts[j].pos.z = (float)v.mData[2];
-		pTheMeshVerts[j++].pos.w = (float)v.mData[3];
+		pTheMeshVerts[i].pos.x = (float)v.mData[0];
+		pTheMeshVerts[i].pos.y = (float)v.mData[1];
+		pTheMeshVerts[i].pos.z = (float)v.mData[2];
+		pTheMeshVerts[i].pos.w = (float)v.mData[3];
+
+		int NormalIndex = i;
+		if (pNormalElement->GetReferenceMode() == FbxLayerElement::eIndexToDirect)
+			NormalIndex = pNormalElement->GetIndexArray().GetAt(i);
+
+		CurrentNormal = pNormalElement->GetDirectArray().GetAt(NormalIndex);
+		pTheMeshVerts[i].norm.x = (float)CurrentNormal[0];
+		pTheMeshVerts[i].norm.y = (float)CurrentNormal[1];
+		pTheMeshVerts[i].norm.z = (float)CurrentNormal[2];
+
+		int UVIndex = i;
+		if (pUVElement->GetReferenceMode() == FbxLayerElement::eIndexToDirect)
+			UVIndex = pUVElement->GetIndexArray().GetAt(i);
+		
+		CurrentUV = pUVElement->GetDirectArray().GetAt(UVIndex);
+		pTheMeshVerts[i].uv.x = (float)CurrentUV[0];
+		pTheMeshVerts[i].uv.y = (float)CurrentUV[1];
+
 	}
+
+
 	//fbxsdk::FbxGeometryElementNormal * pNormalElement = pMesh->GetElementNormal();
 	//FbxVector4 normal{};
 	//for (int i = 0; i < (int)IndicesCount; i++)

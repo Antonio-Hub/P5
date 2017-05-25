@@ -17,6 +17,9 @@ using namespace std;
 using namespace DirectX;
 #include "Trivial_PS.csh"
 #include "Trivial_VS.csh"
+#include "BasicShader.csh"
+#include "BasicPixelShader.csh"
+
 
 #define BACKBUFFER_WIDTH	1000
 #define BACKBUFFER_HEIGHT	1000
@@ -163,6 +166,9 @@ private:
 	ID3D11VertexShader * vertexshader = NULL;
 	ID3D11PixelShader * pixelshader = NULL;
 
+	ID3D11VertexShader * Basicvertexshader = NULL;
+	ID3D11PixelShader * Basicpixelshader = NULL;
+
 	ID3D11Buffer * constBuffer = NULL;
 	ID3D11Buffer * modelAnimationConstBuffer = nullptr;
 
@@ -267,8 +273,8 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 #pragma endregion
 
 #pragma region fbx loading
-	char file[]{ "Teddy_Idle.fbx" };
-	//char file[]{ "Box_Idle.fbx" };
+	//char file[]{ "Teddy_Idle.fbx" };
+	char file[]{ "Box_Idle.fbx" };
 	char mesh[]{ "mesh.bin" };
 	char bone[]{ "bone.bin" };
 	char animation[]{ "animation.bin" };
@@ -292,7 +298,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	D3D11_SUBRESOURCE_DATA InitData;
 	//teddy
 	realTimeModel = new SIMPLE_VERTEX[modelVertCount];
-	XMFLOAT4 VertColor{ 1.0f, 1.0f, 1.0f, 0.0f };
+	XMFLOAT4 VertColor{ 0.0f, 1.0f, 0.0f, 0.0f };
 	for (size_t i = 0; i < modelVertCount; i++)
 	{
 		realTimeModel[i].xyzw = pTheVerts[i].pos;
@@ -349,29 +355,27 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	//ground plane
 	groundindexCount = 6;
 	SIMPLE_VERTEX groundPlane[4]{};
-	groundPlane[0].xyzw = XMFLOAT4(10.0f, 0.0f, 10.0f, 0);
-	groundPlane[1].xyzw = XMFLOAT4(10.0f, 0.0f, -10.0f, 0);
-	groundPlane[2].xyzw = XMFLOAT4(-10.0f, 0.0f, -10.0f, 0);
-	groundPlane[3].xyzw = XMFLOAT4(-10.0f, 0.0f, 10.0f, 0);
+	groundPlane[0].xyzw = XMFLOAT4(10.0f, 0.0f, 10.0f, 0.0f);
+	groundPlane[1].xyzw = XMFLOAT4(10.0f, 0.0f, -10.0f, 0.0f);
+	groundPlane[2].xyzw = XMFLOAT4(-10.0f, 0.0f, -10.0f, 0.0f);
+	groundPlane[3].xyzw = XMFLOAT4(-10.0f, 0.0f, 10.0f, 0.0f);
 
-	groundPlane[0].normal = XMFLOAT4(0.0f, 1.0f, 0.0f, 0);
-	groundPlane[1].normal = XMFLOAT4(0.0f, 1.0f, 0.0f, 0);
-	groundPlane[2].normal = XMFLOAT4(0.0f, 1.0f, 0.0f, 0);
-	groundPlane[3].normal = XMFLOAT4(0.0f, 1.0f, 0.0f, 0);
+	XMFLOAT4 groundColor{ 0.0f, 1.0f, 0.0f, 0.0f };
+	groundPlane[0].color = groundColor;
+	groundPlane[1].color = groundColor;
+	groundPlane[2].color = groundColor;
+	groundPlane[3].color = groundColor;
+
+	groundPlane[0].normal = XMFLOAT4(0.0f, 1.0f, 0.0f, 0.0f);
+	groundPlane[1].normal = XMFLOAT4(0.0f, 1.0f, 0.0f, 0.0f);
+	groundPlane[2].normal = XMFLOAT4(0.0f, 1.0f, 0.0f, 0.0f);
+	groundPlane[3].normal = XMFLOAT4(0.0f, 1.0f, 0.0f, 0.0f);
 
 	groundPlane[0].uv = XMFLOAT2(0.0f, 1.0f);
 	groundPlane[1].uv = XMFLOAT2(1.0f, 1.0f);
 	groundPlane[2].uv = XMFLOAT2(1.0f, 0.0f);
 	groundPlane[3].uv = XMFLOAT2(0.0f, 0.0f);
-	//float groundColor[4]{ 1.0f, 1.0f, 1.0f, 0.0f };
-	float groundColor[4]{ 0.0f, 1.0f, 0.0f, 0.0f };
-	for (size_t i = 0; i < 4; i++)
-	{
-		groundPlane[i].color.x = groundColor[0];
-		groundPlane[i].color.y = groundColor[1];
-		groundPlane[i].color.z = groundColor[2];
-		groundPlane[i].color.w = groundColor[3];
-	}
+	
 	ZeroMemory(&bufferdescription, sizeof(D3D11_BUFFER_DESC));
 	bufferdescription.Usage = D3D11_USAGE_IMMUTABLE;
 	bufferdescription.ByteWidth = (UINT)(sizeof(SIMPLE_VERTEX) * groundindexCount);
@@ -506,6 +510,8 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 #pragma region shaders and imput layout
 	device->CreateVertexShader(Trivial_VS, sizeof(Trivial_VS), NULL, &vertexshader);
 	device->CreatePixelShader(Trivial_PS, sizeof(Trivial_PS), NULL, &pixelshader);
+	device->CreateVertexShader(BasicShader, sizeof(BasicShader), NULL, &Basicvertexshader);
+	device->CreatePixelShader(BasicPixelShader, sizeof(BasicPixelShader), NULL, &Basicpixelshader);
 
 	D3D11_INPUT_ELEMENT_DESC vertlayout[] =
 	{
@@ -618,13 +624,13 @@ bool DEMO_APP::Run()
 	context->ClearRenderTargetView(rtv, color);
 	context->ClearDepthStencilView(depthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 	context->RSSetViewports(1, &viewport);
-	context->VSSetShader(vertexshader, NULL, NULL);
+	//context->VSSetShader(vertexshader, NULL, NULL);
 	context->VSSetConstantBuffers(0, 1, &constBuffer);
 	context->VSSetConstantBuffers(1, 1, &modelAnimationConstBuffer);
-	context->PSSetShader(pixelshader, NULL, NULL);
+	//context->PSSetShader(pixelshader, NULL, NULL);
 	context->IASetInputLayout(layout);
 
-	context->PSSetShaderResources(0, 1, &pModelTexture);
+	//context->PSSetShaderResources(0, 1, &pModelTexture);
 	ZeroMemory(&mapResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
 	context->Map(constBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapResource);
 	memcpy(mapResource.pData, &send_to_ram, sizeof(VRAM));
@@ -647,7 +653,7 @@ bool DEMO_APP::Run()
 		twoKeyFrameTimes[1] = IdleAnimationData->Frames[0].Time;
 
 	double ratio = (currAnimTime - twoKeyFrameTimes[0]) / (twoKeyFrameTimes[1] - twoKeyFrameTimes[0]);
-
+	XMMATRIX m1 = XMMatrixIdentity(), m2 = XMMatrixIdentity(), m3 = XMMatrixIdentity();
 	if (!animationPaused)
 	{
 		XMFLOAT4 new_pos{};
@@ -723,7 +729,6 @@ bool DEMO_APP::Run()
 			send_to_ram2.RealTimePose[i]._21 = new_rot._21; send_to_ram2.RealTimePose[i]._22 = new_rot._22; send_to_ram2.RealTimePose[i]._23 = new_rot._23; send_to_ram2.RealTimePose[i]._24 = new_rot._24;
 			send_to_ram2.RealTimePose[i]._31 = new_rot._31; send_to_ram2.RealTimePose[i]._32 = new_rot._32; send_to_ram2.RealTimePose[i]._33 = new_rot._33; send_to_ram2.RealTimePose[i]._34 = new_rot._34;
 			send_to_ram2.RealTimePose[i]._41 = new_pos.x;	 send_to_ram2.RealTimePose[i]._42 = new_pos.y;  send_to_ram2.RealTimePose[i]._43 = new_pos.z;  send_to_ram2.RealTimePose[i]._44 = new_pos.w;
-			XMMATRIX m1 = XMMatrixIdentity(), m2 = XMMatrixIdentity(), m3 = XMMatrixIdentity();
 			m1 = XMLoadFloat4x4(&send_to_ram2.InverseBindPose[i]);
 			m2 = XMLoadFloat4x4(&send_to_ram2.RealTimePose[i]);
 			m3 = m1 * m2;
@@ -732,12 +737,14 @@ bool DEMO_APP::Run()
 	}
 	else
 	{
-		XMMATRIX m = XMMatrixIdentity();
 		for (size_t i = 0; i < boneCount; i++)
 		{
-			m = XMLoadFloat4x4(&IdleAnimationData->Frames[keyframeAnimIndex].Joints[i]);
-			m = XMMatrixTranspose(m);
-			XMStoreFloat4x4(&send_to_ram2.RealTimePose[i], m);
+
+			m1 = XMLoadFloat4x4(&send_to_ram2.InverseBindPose[i]);
+			m2 = XMLoadFloat4x4(&IdleAnimationData->Frames[keyframeAnimIndex].Joints[i]);
+			m3 = m1 * m2;
+			XMStoreFloat4x4(&send_to_ram2.RealTimePose[i], XMMatrixTranspose(m3));
+
 			DebugPointData[i].xyzw.x = send_to_ram2.RealTimePose[i]._41;
 			DebugPointData[i].xyzw.y = send_to_ram2.RealTimePose[i]._42;
 			DebugPointData[i].xyzw.z = send_to_ram2.RealTimePose[i]._43;
@@ -753,6 +760,8 @@ bool DEMO_APP::Run()
 	context->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	context->IASetVertexBuffers(0, 1, &modelvertbuffer, &stride, &offset);
 	context->IASetIndexBuffer(modelindexbuffer, DXGI_FORMAT_R32_UINT, offset);
+	context->VSSetShader(vertexshader, NULL, NULL);
+	context->PSSetShader(pixelshader, NULL, NULL);
 	context->PSSetShaderResources(0, 1, &pModelTexture);
 	if (!RenderWireFrame)
 		context->RSSetState(wireFrameRasterizerState);
@@ -807,6 +816,7 @@ bool DEMO_APP::Run()
 	//		index++;
 	//	}
 	//}
+
 	ZeroMemory(&mapResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
 	context->Map(pDebugLineBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapResource);
 	memcpy(mapResource.pData, &DebugLineData, sizeof(SIMPLE_VERTEX) * DebugLineCount);
@@ -823,6 +833,9 @@ bool DEMO_APP::Run()
 	context->IASetVertexBuffers(0, 1, &groundvertbuffer, &stride, &offset);
 	context->IASetIndexBuffer(groundindexbuffer, DXGI_FORMAT_R32_UINT, offset);
 	context->RSSetState(SolidRasterizerState);
+	context->VSSetShader(Basicvertexshader, NULL, NULL);
+	context->PSSetShader(Basicpixelshader, NULL, NULL);
+	//context->PSSetShaderResources(0, 1, &pModelTexture);
 	context->DrawIndexed(groundindexCount, 0, 0);
 #pragma endregion
 
