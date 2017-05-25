@@ -34,12 +34,13 @@ cbuffer THIS_IS_ANIMATION_VRAM : register(b1)
 
 OUTPUT_VERTEX main( INPUT_VERTEX fromVertexBuffer )
 {
-	float4 pos = float4(fromVertexBuffer.coordinate.xyz,1.0f);
+	float4 pos1 = float4(fromVertexBuffer.coordinate.xyz,1.0f);
+	
 
-	pos += mul(pos, realTimePose[(int)fromVertexBuffer.index.x])* fromVertexBuffer.weight.x;
-	pos += mul(pos, realTimePose[(int)fromVertexBuffer.index.y])* fromVertexBuffer.weight.y;
-	pos += mul(pos, realTimePose[(int)fromVertexBuffer.index.z])* fromVertexBuffer.weight.z;
-	pos += mul(pos, realTimePose[(int)fromVertexBuffer.index.w])* fromVertexBuffer.weight.w;
+	float4 pos = mul(pos1, realTimePose[(int)fromVertexBuffer.index.x])* fromVertexBuffer.weight.x;
+	pos += mul(pos1, realTimePose[(int)fromVertexBuffer.index.y])* fromVertexBuffer.weight.y;
+	pos += mul(pos1, realTimePose[(int)fromVertexBuffer.index.z])* fromVertexBuffer.weight.z;
+	pos += mul(pos1, realTimePose[(int)fromVertexBuffer.index.w])* fromVertexBuffer.weight.w;
 
 	//pos.w = 1.0f;
 	OUTPUT_VERTEX sendToRasterizer = (OUTPUT_VERTEX)0;

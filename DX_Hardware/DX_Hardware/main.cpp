@@ -488,7 +488,7 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	{
 		m = XMLoadFloat4x4(&bind_pose[i].global_xform);
 		m = XMMatrixInverse(nullptr, m);
-		m = XMMatrixTranspose(m);
+		//m = XMMatrixTranspose(m);
 		XMStoreFloat4x4(&send_to_ram2.InverseBindPose[i], m);
 	}
 	ZeroMemory(&bufferdescription, sizeof(D3D11_BUFFER_DESC));
@@ -650,27 +650,14 @@ bool DEMO_APP::Run()
 
 	if (!animationPaused)
 	{
-		XMFLOAT4 new_x_rot{}, new_y_rot{}, new_z_rot{}, new_pos{};
-		XMVECTOR from_x_rot{}, from_y_rot{}, from_z_rot{}, from_pos{}, to_x_rot{}, to_y_rot{}, to_z_rot{}, to_pos{};
+		XMFLOAT4 new_pos{};
+		XMFLOAT4X4 new_rot{};
+		XMVECTOR from_pos{}, to_pos{}, from_rotation{}, to_rotation{}, real_time_rotation{};
 		int index = 0;
 
 		for (size_t i = 0; i < boneCount; i++)
 		{
-			from_x_rot = XMVectorSet(
-				IdleAnimationData->Frames[keyframeAnimIndex].Joints[i]._11,
-				IdleAnimationData->Frames[keyframeAnimIndex].Joints[i]._12,
-				IdleAnimationData->Frames[keyframeAnimIndex].Joints[i]._13,
-				IdleAnimationData->Frames[keyframeAnimIndex].Joints[i]._14);
-			from_y_rot = XMVectorSet(
-				IdleAnimationData->Frames[keyframeAnimIndex].Joints[i]._21,
-				IdleAnimationData->Frames[keyframeAnimIndex].Joints[i]._22,
-				IdleAnimationData->Frames[keyframeAnimIndex].Joints[i]._23,
-				IdleAnimationData->Frames[keyframeAnimIndex].Joints[i]._24);
-			from_z_rot = XMVectorSet(
-				IdleAnimationData->Frames[keyframeAnimIndex].Joints[i]._31,
-				IdleAnimationData->Frames[keyframeAnimIndex].Joints[i]._32,
-				IdleAnimationData->Frames[keyframeAnimIndex].Joints[i]._33,
-				IdleAnimationData->Frames[keyframeAnimIndex].Joints[i]._34);
+			from_rotation = XMQuaternionRotationMatrix(XMLoadFloat4x4(&IdleAnimationData->Frames[keyframeAnimIndex].Joints[i]));
 			from_pos = XMVectorSet(
 				IdleAnimationData->Frames[keyframeAnimIndex].Joints[i]._41,
 				IdleAnimationData->Frames[keyframeAnimIndex].Joints[i]._42,
@@ -679,21 +666,7 @@ bool DEMO_APP::Run()
 
 			if ((unsigned)keyframeAnimIndex + 1 < keyFrameCount)
 			{
-				to_x_rot = XMVectorSet(
-					IdleAnimationData->Frames[keyframeAnimIndex + 1].Joints[i]._11,
-					IdleAnimationData->Frames[keyframeAnimIndex + 1].Joints[i]._12,
-					IdleAnimationData->Frames[keyframeAnimIndex + 1].Joints[i]._13,
-					IdleAnimationData->Frames[keyframeAnimIndex + 1].Joints[i]._14);
-				to_y_rot = XMVectorSet(
-					IdleAnimationData->Frames[keyframeAnimIndex + 1].Joints[i]._21,
-					IdleAnimationData->Frames[keyframeAnimIndex + 1].Joints[i]._22,
-					IdleAnimationData->Frames[keyframeAnimIndex + 1].Joints[i]._23,
-					IdleAnimationData->Frames[keyframeAnimIndex + 1].Joints[i]._24);
-				to_z_rot = XMVectorSet(
-					IdleAnimationData->Frames[keyframeAnimIndex + 1].Joints[i]._31,
-					IdleAnimationData->Frames[keyframeAnimIndex + 1].Joints[i]._32,
-					IdleAnimationData->Frames[keyframeAnimIndex + 1].Joints[i]._33,
-					IdleAnimationData->Frames[keyframeAnimIndex + 1].Joints[i]._34);
+				to_rotation = XMQuaternionRotationMatrix(XMLoadFloat4x4(&IdleAnimationData->Frames[keyframeAnimIndex + 1].Joints[i]));
 				to_pos = XMVectorSet(
 					IdleAnimationData->Frames[keyframeAnimIndex + 1].Joints[i]._41,
 					IdleAnimationData->Frames[keyframeAnimIndex + 1].Joints[i]._42,
@@ -702,32 +675,15 @@ bool DEMO_APP::Run()
 			}
 			else
 			{
-				to_x_rot = XMVectorSet(
-					IdleAnimationData->Frames[0].Joints[i]._41,
-					IdleAnimationData->Frames[0].Joints[i]._42,
-					IdleAnimationData->Frames[0].Joints[i]._43,
-					IdleAnimationData->Frames[0].Joints[i]._44);
-				to_y_rot = XMVectorSet(
-					IdleAnimationData->Frames[0].Joints[i]._41,
-					IdleAnimationData->Frames[0].Joints[i]._42,
-					IdleAnimationData->Frames[0].Joints[i]._43,
-					IdleAnimationData->Frames[0].Joints[i]._44);
-				to_z_rot = XMVectorSet(
-					IdleAnimationData->Frames[0].Joints[i]._41,
-					IdleAnimationData->Frames[0].Joints[i]._42,
-					IdleAnimationData->Frames[0].Joints[i]._43,
-					IdleAnimationData->Frames[0].Joints[i]._44);
+				to_rotation = XMQuaternionRotationMatrix(XMLoadFloat4x4(&IdleAnimationData->Frames[0].Joints[i]));
 				to_pos = XMVectorSet(
 					IdleAnimationData->Frames[0].Joints[i]._41,
 					IdleAnimationData->Frames[0].Joints[i]._42,
 					IdleAnimationData->Frames[0].Joints[i]._43,
 					IdleAnimationData->Frames[0].Joints[i]._44);
 			}
-
-			XMStoreFloat4(&new_x_rot, XMQuaternionSlerp(from_x_rot, to_x_rot, (float)ratio));
-			XMStoreFloat4(&new_y_rot, XMQuaternionSlerp(from_y_rot, to_y_rot, (float)ratio));
-			XMStoreFloat4(&new_z_rot, XMQuaternionSlerp(from_z_rot, to_z_rot, (float)ratio));
-			XMStoreFloat4(&new_pos, XMQuaternionSlerp(from_pos, to_pos, (float)ratio));
+			XMStoreFloat4x4(&new_rot, XMMatrixRotationQuaternion(XMQuaternionSlerp(from_rotation, to_rotation, (float)ratio)));
+			XMStoreFloat4(&new_pos, XMVectorLerp(from_pos, to_pos, (float)ratio));
 
 #pragma region debug skeleton 
 			DebugPointData[i].xyzw = new_pos;
@@ -762,28 +718,16 @@ bool DEMO_APP::Run()
 				index++;
 			}
 #pragma endregion
-
-			/*
-			send_to_ram2.RealTimePose[i]._11 = 1.0f; send_to_ram2.RealTimePose[i]._12 = 0.0f; send_to_ram2.RealTimePose[i]._13 = 0.0f; send_to_ram2.RealTimePose[i]._14 = 0.0f;
-			send_to_ram2.RealTimePose[i]._21 = 0.0f; send_to_ram2.RealTimePose[i]._22 = 1.0f; send_to_ram2.RealTimePose[i]._23 = 0.0f; send_to_ram2.RealTimePose[i]._24 = 0.0f;
-			send_to_ram2.RealTimePose[i]._31 = 0.0f; send_to_ram2.RealTimePose[i]._32 = 0.0f; send_to_ram2.RealTimePose[i]._33 = 1.0f; send_to_ram2.RealTimePose[i]._34 = 0.0f;
+			
+			send_to_ram2.RealTimePose[i]._11 = new_rot._11; send_to_ram2.RealTimePose[i]._12 = new_rot._12; send_to_ram2.RealTimePose[i]._13 = new_rot._13; send_to_ram2.RealTimePose[i]._14 = new_rot._14;
+			send_to_ram2.RealTimePose[i]._21 = new_rot._21; send_to_ram2.RealTimePose[i]._22 = new_rot._22; send_to_ram2.RealTimePose[i]._23 = new_rot._23; send_to_ram2.RealTimePose[i]._24 = new_rot._24;
+			send_to_ram2.RealTimePose[i]._31 = new_rot._31; send_to_ram2.RealTimePose[i]._32 = new_rot._32; send_to_ram2.RealTimePose[i]._33 = new_rot._33; send_to_ram2.RealTimePose[i]._34 = new_rot._34;
 			send_to_ram2.RealTimePose[i]._41 = new_pos.x;	 send_to_ram2.RealTimePose[i]._42 = new_pos.y;  send_to_ram2.RealTimePose[i]._43 = new_pos.z;  send_to_ram2.RealTimePose[i]._44 = new_pos.w;
-			*/
-			send_to_ram2.RealTimePose[i]._11 = 1.0f; send_to_ram2.RealTimePose[i]._12 = 0.0f; send_to_ram2.RealTimePose[i]._13 = 0.0f; send_to_ram2.RealTimePose[i]._14 = new_pos.x;
-			send_to_ram2.RealTimePose[i]._21 = 0.0f; send_to_ram2.RealTimePose[i]._22 = 1.0f; send_to_ram2.RealTimePose[i]._23 = 0.0f; send_to_ram2.RealTimePose[i]._24 = new_pos.y;
-			send_to_ram2.RealTimePose[i]._31 = 0.0f; send_to_ram2.RealTimePose[i]._32 = 0.0f; send_to_ram2.RealTimePose[i]._33 = 1.0f; send_to_ram2.RealTimePose[i]._34 = new_pos.z;
-			send_to_ram2.RealTimePose[i]._41 = 0.0f;	 send_to_ram2.RealTimePose[i]._42 = 0.0f;  send_to_ram2.RealTimePose[i]._43 = 0.0f;  send_to_ram2.RealTimePose[i]._44 = new_pos.w;
-
-
-			XMMATRIX m1 = XMMatrixIdentity();
-			m1 = XMLoadFloat4x4(&send_to_ram2.RealTimePose[i]);
-			XMMATRIX m2 = XMMatrixIdentity();
-			m2 = XMLoadFloat4x4(&send_to_ram2.InverseBindPose[i]);
-
-			XMMATRIX m3 = m1 * m2;
-
-			XMStoreFloat4x4(&send_to_ram2.RealTimePose[i], m3);
-
+			XMMATRIX m1 = XMMatrixIdentity(), m2 = XMMatrixIdentity(), m3 = XMMatrixIdentity();
+			m1 = XMLoadFloat4x4(&send_to_ram2.InverseBindPose[i]);
+			m2 = XMLoadFloat4x4(&send_to_ram2.RealTimePose[i]);
+			m3 = m1 * m2;
+			XMStoreFloat4x4(&send_to_ram2.RealTimePose[i], XMMatrixTranspose(m3));
 		}
 	}
 	else
@@ -791,17 +735,13 @@ bool DEMO_APP::Run()
 		XMMATRIX m = XMMatrixIdentity();
 		for (size_t i = 0; i < boneCount; i++)
 		{
-
-
 			m = XMLoadFloat4x4(&IdleAnimationData->Frames[keyframeAnimIndex].Joints[i]);
 			m = XMMatrixTranspose(m);
 			XMStoreFloat4x4(&send_to_ram2.RealTimePose[i], m);
-
 			DebugPointData[i].xyzw.x = send_to_ram2.RealTimePose[i]._41;
 			DebugPointData[i].xyzw.y = send_to_ram2.RealTimePose[i]._42;
 			DebugPointData[i].xyzw.z = send_to_ram2.RealTimePose[i]._43;
 			DebugPointData[i].xyzw.w = send_to_ram2.RealTimePose[i]._44;
-
 		}
 	}
 
