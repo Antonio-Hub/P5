@@ -53,5 +53,5 @@ float4 main(OUTPUT_VERTEX input) : SV_TARGET
 
 	Light_Color = saturate(Light_Color);
 	//Texture_Color;
-	return input.colorOut * Light_Color;
+	return input.colorOut *Light_Color;
 }

@@ -145,7 +145,6 @@ __declspec(dllexport) void function(char * fileName, char * outFileNameMesh, cha
 	} while (!pMesh);
 	vert_pos_skinned * pTheMeshVerts = new vert_pos_skinned[pMesh->GetControlPointsCount()]{};
 	IndicesCount = (unsigned int)pMesh->GetPolygonVertexCount();
-	//VertIndices = new unsigned int[IndicesCount]{};
 	VertIndices = (unsigned int *)pMesh->GetPolygonVertices();
 	VertCount = (unsigned int)pMesh->GetControlPointsCount();
 
@@ -182,38 +181,6 @@ __declspec(dllexport) void function(char * fileName, char * outFileNameMesh, cha
 
 	}
 
-
-	//fbxsdk::FbxGeometryElementNormal * pNormalElement = pMesh->GetElementNormal();
-	//FbxVector4 normal{};
-	//for (int i = 0; i < (int)IndicesCount; i++)
-	//{
-	//	normal = pNormalElement->GetDirectArray().GetAt((int)VertIndices[i]);
-	//	pTheMeshVerts[(int)VertIndices[i]].norm.x = (float)normal[0];
-	//	pTheMeshVerts[(int)VertIndices[i]].norm.y = (float)normal[1];
-	//	pTheMeshVerts[(int)VertIndices[i]].norm.z = (float)normal[2];
-	//	pTheMeshVerts[(int)VertIndices[i]].norm.w = (float)normal[3];
-
-	//}
-
-	//for (int i = 0; i < pMesh->GetPolygonCount(); i++)
-	//{
-	//	FbxLayerElement::EType TypeIdentifier = FbxLayerElement::eTextureDiffuse;
-
-	//	FbxLayerElementArrayTemplate<FbxVector2> * uvs = nullptr;
-	//	FbxLayerElementArrayTemplate<int> * uvindices = nullptr;
-
-	//	pMesh->GetTextureUV(&uvs, TypeIdentifier);
-	//	pMesh->GetTextureIndices(&uvindices, TypeIdentifier);
-
-	//	for (int j = 0; j < pMesh->GetPolygonSize(i); j++)
-	//	{
-	//		int u = -1, v = -1, TextureUVIndex = -1;
-	//		TextureUVIndex = (int)pMesh->GetTextureUVIndex(i, j);
-	//		//int sfda = uvindices->GetAt(TextureUVIndex);
-	//		pTheMeshVerts[TextureUVIndex].uv.x = (float)uvs->GetAt(TextureUVIndex).mData[0];
-	//		pTheMeshVerts[TextureUVIndex].uv.y = (float)uvs->GetAt(TextureUVIndex).mData[1];
-	//	}
-	//}
 
 	FbxSkin * pSkin = (FbxSkin*)pMesh->GetDeformer(0);
 	int clusterCount = pSkin->GetClusterCount();

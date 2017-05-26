@@ -154,12 +154,12 @@ private:
 	unsigned int groundindexCount = 0;
 
 	//debug buffer
-	ID3D11Buffer * pDebugPointBuffer = nullptr;
+	/*ID3D11Buffer * pDebugPointBuffer = nullptr;
 	unsigned int DebugPointCount = 128;
 	SIMPLE_VERTEX DebugPointData[128]{};
 	ID3D11Buffer * pDebugLineBuffer = nullptr;
 	unsigned int DebugLineCount = 128;
-	SIMPLE_VERTEX DebugLineData[128]{};
+	SIMPLE_VERTEX DebugLineData[128]{};*/
 
 	ID3D11InputLayout * layout = NULL;
 
@@ -273,8 +273,8 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 #pragma endregion
 
 #pragma region fbx loading
-	//char file[]{ "Teddy_Idle.fbx" };
-	char file[]{ "Box_Idle.fbx" };
+	char file[]{ "Teddy_Idle.fbx" };
+	//char file[]{ "Box_Idle.fbx" };
 	char mesh[]{ "mesh.bin" };
 	char bone[]{ "bone.bin" };
 	char animation[]{ "animation.bin" };
@@ -408,46 +408,46 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 
 #pragma region debug render buffers
 	//debug buffer
-	ZeroMemory(&bufferdescription, sizeof(D3D11_BUFFER_DESC));
-	bufferdescription.Usage = D3D11_USAGE_DYNAMIC;
-	bufferdescription.ByteWidth = (UINT)(sizeof(SIMPLE_VERTEX) * DebugPointCount);
-	bufferdescription.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	bufferdescription.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	bufferdescription.MiscFlags = NULL;
-	bufferdescription.StructureByteStride = sizeof(SIMPLE_VERTEX);
-	ZeroMemory(&InitData, sizeof(D3D11_SUBRESOURCE_DATA));
-	InitData.pSysMem = DebugPointData;
-	device->CreateBuffer(&bufferdescription, &InitData, &pDebugPointBuffer);
+	//ZeroMemory(&bufferdescription, sizeof(D3D11_BUFFER_DESC));
+	//bufferdescription.Usage = D3D11_USAGE_DYNAMIC;
+	//bufferdescription.ByteWidth = (UINT)(sizeof(SIMPLE_VERTEX) * DebugPointCount);
+	//bufferdescription.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	//bufferdescription.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	//bufferdescription.MiscFlags = NULL;
+	//bufferdescription.StructureByteStride = sizeof(SIMPLE_VERTEX);
+	//ZeroMemory(&InitData, sizeof(D3D11_SUBRESOURCE_DATA));
+	//InitData.pSysMem = DebugPointData;
+	//device->CreateBuffer(&bufferdescription, &InitData, &pDebugPointBuffer);
 
-	int index = 0;
-	for (size_t i = 0; i < bind_pose.size(); i++)
-	{
-		if (bind_pose[i].Parent_Index != -1)
-		{
-			DebugLineData[index].xyzw.x = bind_pose[bind_pose[i].Parent_Index].global_xform._41;
-			DebugLineData[index].xyzw.y = bind_pose[bind_pose[i].Parent_Index].global_xform._42;
-			DebugLineData[index].xyzw.z = bind_pose[bind_pose[i].Parent_Index].global_xform._43;
-			DebugLineData[index].xyzw.w = bind_pose[bind_pose[i].Parent_Index].global_xform._44;
-			index++;
-			DebugLineData[index].xyzw.x = bind_pose[i].global_xform._41;
-			DebugLineData[index].xyzw.y = bind_pose[i].global_xform._42;
-			DebugLineData[index].xyzw.z = bind_pose[i].global_xform._43;
-			DebugLineData[index].xyzw.w = bind_pose[i].global_xform._44;
-			index++;
+	//int index = 0;
+	//for (size_t i = 0; i < bind_pose.size(); i++)
+	//{
+	//	if (bind_pose[i].Parent_Index != -1)
+	//	{
+	//		DebugLineData[index].xyzw.x = bind_pose[bind_pose[i].Parent_Index].global_xform._41;
+	//		DebugLineData[index].xyzw.y = bind_pose[bind_pose[i].Parent_Index].global_xform._42;
+	//		DebugLineData[index].xyzw.z = bind_pose[bind_pose[i].Parent_Index].global_xform._43;
+	//		DebugLineData[index].xyzw.w = bind_pose[bind_pose[i].Parent_Index].global_xform._44;
+	//		index++;
+	//		DebugLineData[index].xyzw.x = bind_pose[i].global_xform._41;
+	//		DebugLineData[index].xyzw.y = bind_pose[i].global_xform._42;
+	//		DebugLineData[index].xyzw.z = bind_pose[i].global_xform._43;
+	//		DebugLineData[index].xyzw.w = bind_pose[i].global_xform._44;
+	//		index++;
 
-		}
+	//	}
 
-	}
-	ZeroMemory(&bufferdescription, sizeof(D3D11_BUFFER_DESC));
-	bufferdescription.Usage = D3D11_USAGE_DYNAMIC;
-	bufferdescription.ByteWidth = (UINT)(sizeof(SIMPLE_VERTEX) * DebugLineCount);
-	bufferdescription.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	bufferdescription.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	bufferdescription.MiscFlags = NULL;
-	bufferdescription.StructureByteStride = sizeof(SIMPLE_VERTEX);
-	ZeroMemory(&InitData, sizeof(D3D11_SUBRESOURCE_DATA));
-	InitData.pSysMem = DebugLineData;
-	device->CreateBuffer(&bufferdescription, &InitData, &pDebugLineBuffer);
+	//}
+	//ZeroMemory(&bufferdescription, sizeof(D3D11_BUFFER_DESC));
+	//bufferdescription.Usage = D3D11_USAGE_DYNAMIC;
+	//bufferdescription.ByteWidth = (UINT)(sizeof(SIMPLE_VERTEX) * DebugLineCount);
+	//bufferdescription.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	//bufferdescription.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	//bufferdescription.MiscFlags = NULL;
+	//bufferdescription.StructureByteStride = sizeof(SIMPLE_VERTEX);
+	//ZeroMemory(&InitData, sizeof(D3D11_SUBRESOURCE_DATA));
+	//InitData.pSysMem = DebugLineData;
+	//device->CreateBuffer(&bufferdescription, &InitData, &pDebugLineBuffer);
 
 #pragma endregion
 
@@ -492,7 +492,6 @@ DEMO_APP::DEMO_APP(HINSTANCE hinst, WNDPROC proc)
 	{
 		m = XMLoadFloat4x4(&bind_pose[i].global_xform);
 		m = XMMatrixInverse(nullptr, m);
-		//m = XMMatrixTranspose(m);
 		XMStoreFloat4x4(&send_to_ram2.InverseBindPose[i], m);
 	}
 	ZeroMemory(&bufferdescription, sizeof(D3D11_BUFFER_DESC));
@@ -691,44 +690,47 @@ bool DEMO_APP::Run()
 			XMStoreFloat4x4(&new_rot, XMMatrixRotationQuaternion(XMQuaternionSlerp(from_rotation, to_rotation, (float)ratio)));
 			XMStoreFloat4(&new_pos, XMVectorLerp(from_pos, to_pos, (float)ratio));
 
-#pragma region debug skeleton 
-			DebugPointData[i].xyzw = new_pos;
-			if (bind_pose[i].Parent_Index != -1)
-			{
-				DebugLineData[index].xyzw.x = send_to_ram2.RealTimePose[bind_pose[i].Parent_Index]._41;
-				DebugLineData[index].xyzw.y = send_to_ram2.RealTimePose[bind_pose[i].Parent_Index]._42;
-				DebugLineData[index].xyzw.z = send_to_ram2.RealTimePose[bind_pose[i].Parent_Index]._43;
-				DebugLineData[index].xyzw.w = send_to_ram2.RealTimePose[bind_pose[i].Parent_Index]._44;
-				DebugLineData[index].color = XMFLOAT4(1.0f, 0.0f, 0.0f, 0.0f);
-				index++;
-				DebugLineData[index].xyzw.x = send_to_ram2.RealTimePose[i]._41;
-				DebugLineData[index].xyzw.y = send_to_ram2.RealTimePose[i]._42;
-				DebugLineData[index].xyzw.z = send_to_ram2.RealTimePose[i]._43;
-				DebugLineData[index].xyzw.w = send_to_ram2.RealTimePose[i]._44;
-				DebugLineData[index].color = XMFLOAT4(0.0f, 0.0f, 1.0f, 0.0f);
-				index++;
-			}
-			else //Render line from origin to root node.
-			{
-				DebugLineData[index].xyzw.x = 0.0f;
-				DebugLineData[index].xyzw.y = 0.0f;
-				DebugLineData[index].xyzw.z = 0.0f;
-				DebugLineData[index].xyzw.w = 0.0f;
-				DebugLineData[index].color = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
-				index++;
-				DebugLineData[index].xyzw.x = send_to_ram2.RealTimePose[i]._41;
-				DebugLineData[index].xyzw.y = send_to_ram2.RealTimePose[i]._42;
-				DebugLineData[index].xyzw.z = send_to_ram2.RealTimePose[i]._43;
-				DebugLineData[index].xyzw.w = send_to_ram2.RealTimePose[i]._44;
-				DebugLineData[index].color = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
-				index++;
-			}
-#pragma endregion
-			
 			send_to_ram2.RealTimePose[i]._11 = new_rot._11; send_to_ram2.RealTimePose[i]._12 = new_rot._12; send_to_ram2.RealTimePose[i]._13 = new_rot._13; send_to_ram2.RealTimePose[i]._14 = new_rot._14;
 			send_to_ram2.RealTimePose[i]._21 = new_rot._21; send_to_ram2.RealTimePose[i]._22 = new_rot._22; send_to_ram2.RealTimePose[i]._23 = new_rot._23; send_to_ram2.RealTimePose[i]._24 = new_rot._24;
 			send_to_ram2.RealTimePose[i]._31 = new_rot._31; send_to_ram2.RealTimePose[i]._32 = new_rot._32; send_to_ram2.RealTimePose[i]._33 = new_rot._33; send_to_ram2.RealTimePose[i]._34 = new_rot._34;
 			send_to_ram2.RealTimePose[i]._41 = new_pos.x;	 send_to_ram2.RealTimePose[i]._42 = new_pos.y;  send_to_ram2.RealTimePose[i]._43 = new_pos.z;  send_to_ram2.RealTimePose[i]._44 = new_pos.w;
+			
+//#pragma region debug skeleton 
+//
+//			DebugPointData[i].xyzw = new_pos;
+//			if (bind_pose[i].Parent_Index != -1)
+//			{
+//				DebugLineData[index].xyzw.x = send_to_ram2.RealTimePose[bind_pose[i].Parent_Index]._41;
+//				DebugLineData[index].xyzw.y = send_to_ram2.RealTimePose[bind_pose[i].Parent_Index]._42;
+//				DebugLineData[index].xyzw.z = send_to_ram2.RealTimePose[bind_pose[i].Parent_Index]._43;
+//				DebugLineData[index].xyzw.w = send_to_ram2.RealTimePose[bind_pose[i].Parent_Index]._44;
+//				DebugLineData[index].color = XMFLOAT4(1.0f, 1.0f, 1.0f, 0.0f);
+//				index++;
+//				DebugLineData[index].xyzw.x = send_to_ram2.RealTimePose[i]._41;
+//				DebugLineData[index].xyzw.y = send_to_ram2.RealTimePose[i]._42;
+//				DebugLineData[index].xyzw.z = send_to_ram2.RealTimePose[i]._43;
+//				DebugLineData[index].xyzw.w = send_to_ram2.RealTimePose[i]._44;
+//				DebugLineData[index].color = XMFLOAT4(1.0f, 1.0f, 1.0f, 0.0f);
+//				index++;
+//			}
+//			else //Render line from origin to root node.
+//			{
+//				DebugLineData[index].xyzw.x = 0.0f;
+//				DebugLineData[index].xyzw.y = 0.0f;
+//				DebugLineData[index].xyzw.z = 0.0f;
+//				DebugLineData[index].xyzw.w = 0.0f;
+//				DebugLineData[index].color = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+//				index++;
+//				DebugLineData[index].xyzw.x = send_to_ram2.RealTimePose[i]._41;
+//				DebugLineData[index].xyzw.y = send_to_ram2.RealTimePose[i]._42;
+//				DebugLineData[index].xyzw.z = send_to_ram2.RealTimePose[i]._43;
+//				DebugLineData[index].xyzw.w = send_to_ram2.RealTimePose[i]._44;
+//				DebugLineData[index].color = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+//				index++;
+//			}
+//
+//#pragma endregion
+
 			m1 = XMLoadFloat4x4(&send_to_ram2.InverseBindPose[i]);
 			m2 = XMLoadFloat4x4(&send_to_ram2.RealTimePose[i]);
 			m3 = m1 * m2;
@@ -739,16 +741,14 @@ bool DEMO_APP::Run()
 	{
 		for (size_t i = 0; i < boneCount; i++)
 		{
-
 			m1 = XMLoadFloat4x4(&send_to_ram2.InverseBindPose[i]);
 			m2 = XMLoadFloat4x4(&IdleAnimationData->Frames[keyframeAnimIndex].Joints[i]);
 			m3 = m1 * m2;
 			XMStoreFloat4x4(&send_to_ram2.RealTimePose[i], XMMatrixTranspose(m3));
-
-			DebugPointData[i].xyzw.x = send_to_ram2.RealTimePose[i]._41;
+			/*DebugPointData[i].xyzw.x = send_to_ram2.RealTimePose[i]._41;
 			DebugPointData[i].xyzw.y = send_to_ram2.RealTimePose[i]._42;
 			DebugPointData[i].xyzw.z = send_to_ram2.RealTimePose[i]._43;
-			DebugPointData[i].xyzw.w = send_to_ram2.RealTimePose[i]._44;
+			DebugPointData[i].xyzw.w = send_to_ram2.RealTimePose[i]._44;*/
 		}
 	}
 
@@ -772,7 +772,8 @@ bool DEMO_APP::Run()
 #pragma endregion
 
 #pragma region debug
-	ZeroMemory(&mapResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
+
+	/*ZeroMemory(&mapResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
 	context->Map(pDebugPointBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapResource);
 	memcpy(mapResource.pData, &DebugPointData, sizeof(SIMPLE_VERTEX) * DebugPointCount);
 	context->Unmap(pDebugPointBuffer, 0);
@@ -780,8 +781,10 @@ bool DEMO_APP::Run()
 	context->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_POINTLIST);
 	context->IASetVertexBuffers(0, 1, &pDebugPointBuffer, &stride, &offset);
 	context->RSSetState(wireFrameRasterizerState);
+	context->VSSetShader(Basicvertexshader, NULL, NULL);
+	context->PSSetShader(Basicpixelshader, NULL, NULL);
 	context->Draw(DebugPointCount, 0);
-
+*/
 	//int index = 0;
 	//for (size_t i = 0; i < bind_pose.size(); i++)
 	//{
@@ -817,15 +820,16 @@ bool DEMO_APP::Run()
 	//	}
 	//}
 
-	ZeroMemory(&mapResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
-	context->Map(pDebugLineBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapResource);
-	memcpy(mapResource.pData, &DebugLineData, sizeof(SIMPLE_VERTEX) * DebugLineCount);
-	context->Unmap(pDebugLineBuffer, 0);
+	//ZeroMemory(&mapResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
+	//context->Map(pDebugLineBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapResource);
+	//memcpy(mapResource.pData, &DebugLineData, sizeof(SIMPLE_VERTEX) * DebugLineCount);
+	//context->Unmap(pDebugLineBuffer, 0);
 
-	context->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_LINELIST);
-	context->IASetVertexBuffers(0, 1, &pDebugLineBuffer, &stride, &offset);
-	context->RSSetState(wireFrameRasterizerState);
-	context->Draw(DebugLineCount, 0);
+	//context->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_LINELIST);
+	//context->IASetVertexBuffers(0, 1, &pDebugLineBuffer, &stride, &offset);
+	//context->RSSetState(wireFrameRasterizerState);
+	//context->Draw(DebugLineCount, 0);
+
 #pragma endregion
 
 #pragma region draw ground
@@ -864,10 +868,10 @@ bool DEMO_APP::ShutDown()
 	groundvertbuffer->Release();
 	groundindexbuffer->Release();
 
-	if (pDebugPointBuffer)
-		pDebugPointBuffer->Release();
-	if (pDebugLineBuffer)
-		pDebugLineBuffer->Release();
+	//if (pDebugPointBuffer)
+	//	pDebugPointBuffer->Release();
+	//if (pDebugLineBuffer)
+	//	pDebugLineBuffer->Release();
 
 
 	layout->Release();
